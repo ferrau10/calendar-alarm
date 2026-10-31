@@ -50,6 +50,26 @@ class DataStoreSettingsStoreTest {
     }
 
     @Test
+    fun autoSelectFlagsDefaultOffAndPersist() = runBlocking {
+        val store = store()
+        assertEquals(false, store.autoSelectVideoCalls.first())
+        assertEquals(false, store.autoSelectAcceptedMeetings.first())
+        store.setAutoSelectVideoCalls(true)
+        store.setAutoSelectAcceptedMeetings(true)
+        assertEquals(true, store.autoSelectVideoCalls.first())
+        assertEquals(true, store.autoSelectAcceptedMeetings.first())
+    }
+
+    @Test
+    fun dismissedIdsAccumulate() = runBlocking {
+        val store = store()
+        store.addDismissedEventId("a")
+        store.addDismissedEventId("b")
+        store.addDismissedEventId("a")
+        assertEquals(setOf("a", "b"), store.dismissedEventIds.first())
+    }
+
+    @Test
     fun persistsAcrossInstances() = runBlocking {
         val file = File(tmp.root, "persist.preferences_pb")
         val first = store(file)

@@ -143,6 +143,20 @@ class GoogleCalendarRepositoryTest {
     }
 
     @Test
+    fun mapsAttendeesToOthersAndMyResponse() = runTest {
+        val repo = repo { json(ATTENDEE_EVENTS) }
+
+        val events = repo.upcomingEvents(setOf("primary"), from, to).associateBy { it.id }
+
+        assertTrue(events.getValue("accepted").hasOtherAttendees)
+        assertTrue(events.getValue("accepted").acceptedByMe)
+        assertFalse(events.getValue("declined").acceptedByMe)
+        assertFalse(events.getValue("roomOnly").hasOtherAttendees) // a meeting room isn't a person
+        assertTrue(events.getValue("mine").acceptedByMe) // no attendee list: my own event
+        assertFalse(events.getValue("mine").hasOtherAttendees)
+    }
+
+    @Test
     fun retriesOnceWithFreshTokenOn401() = runTest {
         val repo = repo { req ->
             if (req.headers[HttpHeaders.Authorization] == "Bearer token") json("{}", HttpStatusCode.Unauthorized)
@@ -211,6 +225,17 @@ class GoogleCalendarRepositoryTest {
 
         const val CANCELLED_EVENT = """
         {"id":"cancelled1","status":"cancelled","summary":"Old","start":{"dateTime":"2026-11-02T08:00:00Z"},"end":{"dateTime":"2026-11-02T09:00:00Z"}}"""
+
+        const val ATTENDEE_EVENTS = """
+        {"items":[
+          {"id":"accepted","summary":"1:1","start":{"dateTime":"2026-11-02T08:00:00Z"},"end":{"dateTime":"2026-11-02T08:30:00Z"},
+           "attendees":[{"email":"me@example.com","self":true,"responseStatus":"accepted"},{"email":"sam@example.com","responseStatus":"needsAction"}]},
+          {"id":"declined","summary":"All hands","start":{"dateTime":"2026-11-02T09:00:00Z"},"end":{"dateTime":"2026-11-02T10:00:00Z"},
+           "attendees":[{"email":"me@example.com","self":true,"responseStatus":"declined"},{"email":"ceo@example.com","organizer":true}]},
+          {"id":"roomOnly","summary":"Focus","start":{"dateTime":"2026-11-02T11:00:00Z"},"end":{"dateTime":"2026-11-02T12:00:00Z"},
+           "attendees":[{"email":"me@example.com","self":true,"organizer":true},{"email":"room@resource.calendar.google.com","resource":true}]},
+          {"id":"mine","summary":"Gym","start":{"dateTime":"2026-11-02T18:00:00Z"},"end":{"dateTime":"2026-11-02T19:00:00Z"}}
+        ]}"""
 
         const val SINGLE_EVENT = """
         {"id":"planning","status":"confirmed","summary":"Planning (moved)",

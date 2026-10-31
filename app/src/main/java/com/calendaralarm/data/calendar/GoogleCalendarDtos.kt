@@ -35,6 +35,15 @@ internal data class EventDto(
     val end: EventDateTimeDto? = null,
     val hangoutLink: String? = null,
     val conferenceData: ConferenceDataDto? = null,
+    val attendees: List<AttendeeDto> = emptyList(),
+)
+
+@Serializable
+internal data class AttendeeDto(
+    val self: Boolean = false,
+    val resource: Boolean = false,
+    val responseStatus: String? = null,
+    val organizer: Boolean = false,
 )
 
 @Serializable

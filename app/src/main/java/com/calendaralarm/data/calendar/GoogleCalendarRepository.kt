@@ -152,6 +152,11 @@ class GoogleCalendarRepository(
             location = location?.takeIf { it.isNotBlank() },
             meetLink = hangoutLink
                 ?: conferenceData?.entryPoints?.firstOrNull { it.entryPointType == "video" }?.uri,
+            hasOtherAttendees = attendees.any { !it.self && !it.resource },
+            acceptedByMe = attendees.firstOrNull { it.self }
+                ?.let { it.responseStatus == "accepted" || (it.organizer && it.responseStatus == null) }
+                // No attendee list means it's my own event.
+                ?: attendees.isEmpty(),
         )
     }
 

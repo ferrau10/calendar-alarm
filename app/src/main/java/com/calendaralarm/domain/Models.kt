@@ -23,6 +23,10 @@ data class CalendarEvent(
     val allDay: Boolean,
     val location: String?,
     val meetLink: String?,
+    /** Other people are invited (not just me). */
+    val hasOtherAttendees: Boolean = false,
+    /** My response: true if I accepted, or I'm the organizer of an event without a response. */
+    val acceptedByMe: Boolean = false,
 )
 
 /** An event the user wants an alarm for. */

@@ -18,10 +18,17 @@ class FakeCalendar : CalendarRepository {
     val events = mutableMapOf<String, CalendarEvent>()
     var offline = false
     var fetches = 0
+    var calendarList = listOf(CalendarInfo("primary", "Me", "#4285f4", primary = true))
+    var failWith: Exception? = null
 
-    override suspend fun calendars(): List<CalendarInfo> = emptyList()
-    override suspend fun upcomingEvents(calendarIds: Set<String>, from: Instant, to: Instant) =
-        events.values.filter { it.calendarId in calendarIds }.sortedBy { it.start }
+    override suspend fun calendars(): List<CalendarInfo> {
+        failWith?.let { throw it }
+        return calendarList
+    }
+    override suspend fun upcomingEvents(calendarIds: Set<String>, from: Instant, to: Instant): List<CalendarEvent> {
+        failWith?.let { throw it }
+        return events.values.filter { it.calendarId in calendarIds && it.start < to && it.end > from }.sortedBy { it.start }
+    }
 
     override suspend fun event(calendarId: String, eventId: String): CalendarEvent? {
         fetches++
@@ -45,6 +52,15 @@ class FakeSettings : SettingsStore {
     override suspend fun setDefaultLeadMinutes(minutes: Int) { lead.value = minutes }
     override val enabledCalendarIds: Flow<Set<String>> = calendars
     override suspend fun setEnabledCalendarIds(ids: Set<String>) { calendars.value = ids }
+    val autoVideo = MutableStateFlow(false)
+    val autoAccepted = MutableStateFlow(false)
+    val dismissed = MutableStateFlow<Set<String>>(emptySet())
+    override val autoSelectVideoCalls: Flow<Boolean> = autoVideo
+    override suspend fun setAutoSelectVideoCalls(enabled: Boolean) { autoVideo.value = enabled }
+    override val autoSelectAcceptedMeetings: Flow<Boolean> = autoAccepted
+    override suspend fun setAutoSelectAcceptedMeetings(enabled: Boolean) { autoAccepted.value = enabled }
+    override val dismissedEventIds: Flow<Set<String>> = dismissed
+    override suspend fun addDismissedEventId(eventId: String) { dismissed.value = dismissed.value + eventId }
 }
 
 class FakeScheduler : AlarmScheduler {

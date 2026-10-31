@@ -43,6 +43,18 @@ interface SettingsStore {
     /** Calendars shown in the events list. Empty means "primary calendar only". */
     val enabledCalendarIds: Flow<Set<String>>
     suspend fun setEnabledCalendarIds(ids: Set<String>)
+
+    /** Automatically add alarms for events with a video-call link. */
+    val autoSelectVideoCalls: Flow<Boolean>
+    suspend fun setAutoSelectVideoCalls(enabled: Boolean)
+
+    /** Automatically add alarms for events I accepted that have other attendees. */
+    val autoSelectAcceptedMeetings: Flow<Boolean>
+    suspend fun setAutoSelectAcceptedMeetings(enabled: Boolean)
+
+    /** Events the user turned off; auto-select rules never add them back. */
+    val dismissedEventIds: Flow<Set<String>>
+    suspend fun addDismissedEventId(eventId: String)
 }
 
 /** Schedules the actual alarms on the device (issue #8). */

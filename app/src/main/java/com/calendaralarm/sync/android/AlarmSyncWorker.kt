@@ -14,7 +14,7 @@ import androidx.work.workDataOf
 import com.calendaralarm.sync.AlarmSyncer
 import java.util.concurrent.TimeUnit
 
-/** Implemented by the Application so workers and receivers can reach the syncer (wired in #16). */
+/** Implemented by the Application so workers and receivers can reach the syncer (wired in #15). */
 interface AlarmSyncerProvider {
     val alarmSyncer: AlarmSyncer
 }
@@ -35,8 +35,8 @@ class AlarmSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
 }
 
 object AlarmSyncWork {
-    private const val PERIODIC = "alarm-sync-periodic"
-    private const val NOW = "alarm-sync-now"
+    internal const val PERIODIC = "alarm-sync-periodic"
+    internal const val NOW = "alarm-sync-now"
 
     /** Refreshes selected events from the calendar every 30 minutes while online. */
     fun schedulePeriodic(context: Context) {

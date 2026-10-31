@@ -6,4 +6,5 @@
     <string name="alarm_snooze">Snooze %1$d min</string>
     <string name="alarm_untitled">Meeting</string>
     <string name="alarm_subtitle">Meeting reminder</string>
+    <string name="widget_description">Your next meeting alarm</string>
 </resources>
