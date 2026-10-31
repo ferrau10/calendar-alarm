@@ -25,4 +25,10 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests and debug build
-        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --continue testDebugUnitTest assembleDebug 2>&1 | tee build.log
+      - name: Report failures as annotations
+        if: failure()
+        run: python3 .github/scripts/report_failures.py build.log
