@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    // Temporary manual construction; Hilt bindings and real screens arrive with #10-#12 and #16.
+    // Temporary manual construction; Hilt bindings and real screens arrive with #10-#12 and #15.
     private val auth by lazy {
         GoogleAuthRepository(
             PlayServicesGoogleAuthClient(this, BuildConfig.GOOGLE_WEB_CLIENT_ID),

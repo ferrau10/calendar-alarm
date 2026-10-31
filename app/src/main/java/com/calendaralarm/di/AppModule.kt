@@ -6,7 +6,7 @@ import dagger.hilt.components.SingletonComponent
 
 /**
  * Bindings from the domain interfaces to their implementations are added here as each
- * implementation lands (see issue #16).
+ * implementation lands (see issue #15).
  */
 @Module
 @InstallIn(SingletonComponent::class)

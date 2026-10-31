@@ -10,7 +10,7 @@ fun interface AlarmRinger {
     fun ring(alarmKey: String, label: String)
 }
 
-/** Implemented by the Application to provide the real [AlarmRinger] (wired in #16). */
+/** Implemented by the Application to provide the real [AlarmRinger] (wired in #15). */
 interface AlarmRingerProvider {
     val alarmRinger: AlarmRinger
 }
