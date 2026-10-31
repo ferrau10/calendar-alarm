@@ -35,8 +35,8 @@ class AlarmSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
 }
 
 object AlarmSyncWork {
-    private const val PERIODIC = "alarm-sync-periodic"
-    private const val NOW = "alarm-sync-now"
+    internal const val PERIODIC = "alarm-sync-periodic"
+    internal const val NOW = "alarm-sync-now"
 
     /** Refreshes selected events from the calendar every 30 minutes while online. */
     fun schedulePeriodic(context: Context) {
