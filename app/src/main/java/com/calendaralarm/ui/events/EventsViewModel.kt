@@ -101,6 +101,7 @@ class EventsViewModel @Inject constructor(
         viewModelScope.launch {
             if (row.selected) {
                 selections.remove(row.eventId)
+                settings.addDismissedEventId(row.eventId) // auto-select rules won't add it back
             } else if (!row.allDay) {
                 selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, leadMinutes = null))
             }

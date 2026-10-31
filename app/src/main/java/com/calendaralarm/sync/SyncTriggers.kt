@@ -23,6 +23,13 @@ class SyncTriggers(
 ) {
     @OptIn(FlowPreview::class)
     fun start(scope: CoroutineScope): Job = scope.launch {
+        // Turning an auto-select rule on needs the calendar, so this one refreshes from the network.
+        launch {
+            combine(settings.autoSelectVideoCalls, settings.autoSelectAcceptedMeetings) { a, b -> a to b }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { (video, accepted) -> if (video || accepted) syncer.sync(refreshFromCalendar = true) }
+        }
         combine(selections.observe(), settings.defaultLeadMinutes) { list, default ->
             // Only what the user controls; title/start updates written by the syncer itself don't retrigger.
             list.map { it.eventId to it.leadMinutes }.toSet() to default

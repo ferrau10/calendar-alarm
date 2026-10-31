@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -76,6 +77,8 @@ fun SettingsRoute(viewModel: SettingsViewModel, permissions: AppPermissions, onB
         onRetryCalendars = viewModel::loadCalendars,
         onDisconnect = viewModel::disconnect,
         onTestAlarm = viewModel::scheduleTestAlarm,
+        onAutoVideoChange = viewModel::setAutoSelectVideoCalls,
+        onAutoAcceptedChange = viewModel::setAutoSelectAcceptedMeetings,
         onOpenSystemSettings = { intent -> runCatching { context.startActivity(intent) } },
         permissionIntents = intents,
     )
@@ -93,6 +96,8 @@ fun SettingsScreen(
     onTestAlarm: () -> Unit,
     onOpenSystemSettings: (Intent) -> Unit,
     permissionIntents: PermissionIntents,
+    onAutoVideoChange: (Boolean) -> Unit = {},
+    onAutoAcceptedChange: (Boolean) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -127,6 +132,12 @@ fun SettingsScreen(
                     )
                 }
             }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            Section("Automatic alarms")
+            SwitchRow("Events with a video call link", state.autoSelectVideoCalls, onAutoVideoChange)
+            SwitchRow("Meetings I accepted with other people", state.autoSelectAcceptedMeetings, onAutoAcceptedChange)
+            Hint("Matching events in the next 7 days get an alarm automatically. Turn one off and it stays off.")
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Section("Calendars to show")
@@ -187,6 +198,17 @@ private fun Section(title: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp),
     )
+}
+
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
 }
 
 @Composable

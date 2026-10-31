@@ -30,6 +30,8 @@ data class SettingsUiState(
     val account: String? = null,
     val permissions: PermissionState = PermissionState.ALL_GRANTED,
     val testAlarmScheduled: Boolean = false,
+    val autoSelectVideoCalls: Boolean = false,
+    val autoSelectAcceptedMeetings: Boolean = false,
 )
 
 @HiltViewModel
@@ -58,8 +60,15 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    val uiState: StateFlow<SettingsUiState> = combine(base, permissions, testAlarm) { state, perms, test ->
-        state.copy(permissions = perms, testAlarmScheduled = test)
+    val uiState: StateFlow<SettingsUiState> = combine(
+        base, permissions, testAlarm, settings.autoSelectVideoCalls, settings.autoSelectAcceptedMeetings,
+    ) { state, perms, test, video, accepted ->
+        state.copy(
+            permissions = perms,
+            testAlarmScheduled = test,
+            autoSelectVideoCalls = video,
+            autoSelectAcceptedMeetings = accepted,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     init {
@@ -90,6 +99,14 @@ class SettingsViewModel @Inject constructor(
             val updated = if (id in current) current - id else current + id
             settings.setEnabledCalendarIds(updated)
         }
+    }
+
+    fun setAutoSelectVideoCalls(enabled: Boolean) {
+        viewModelScope.launch { settings.setAutoSelectVideoCalls(enabled) }
+    }
+
+    fun setAutoSelectAcceptedMeetings(enabled: Boolean) {
+        viewModelScope.launch { settings.setAutoSelectAcceptedMeetings(enabled) }
     }
 
     fun disconnect() {

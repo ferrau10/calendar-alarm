@@ -52,6 +52,15 @@ class FakeSettings : SettingsStore {
     override suspend fun setDefaultLeadMinutes(minutes: Int) { lead.value = minutes }
     override val enabledCalendarIds: Flow<Set<String>> = calendars
     override suspend fun setEnabledCalendarIds(ids: Set<String>) { calendars.value = ids }
+    val autoVideo = MutableStateFlow(false)
+    val autoAccepted = MutableStateFlow(false)
+    val dismissed = MutableStateFlow<Set<String>>(emptySet())
+    override val autoSelectVideoCalls: Flow<Boolean> = autoVideo
+    override suspend fun setAutoSelectVideoCalls(enabled: Boolean) { autoVideo.value = enabled }
+    override val autoSelectAcceptedMeetings: Flow<Boolean> = autoAccepted
+    override suspend fun setAutoSelectAcceptedMeetings(enabled: Boolean) { autoAccepted.value = enabled }
+    override val dismissedEventIds: Flow<Set<String>> = dismissed
+    override suspend fun addDismissedEventId(eventId: String) { dismissed.value = dismissed.value + eventId }
 }
 
 class FakeScheduler : AlarmScheduler {

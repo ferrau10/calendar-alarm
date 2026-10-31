@@ -54,6 +54,9 @@ class AlarmSyncer(
         var offline = false
         val active = mutableListOf<SelectedEvent>()
 
+        val autoAdded = if (refreshFromCalendar) autoSelect(now) else AutoSelectOutcome.Skipped
+        if (autoAdded == AutoSelectOutcome.Offline) offline = true
+
         for (selection in selections.all()) {
             var current = selection
             if (refreshFromCalendar) {
@@ -106,6 +109,35 @@ class AlarmSyncer(
         registry.replace(scheduled)
 
         SyncResult(scheduled, cancelled, removed, updated, offline)
+    }
+
+    private enum class AutoSelectOutcome { Skipped, Done, Offline }
+
+    /** Adds upcoming events matching the enabled auto-select rules, except ones the user turned off. */
+    private suspend fun autoSelect(now: java.time.Instant): AutoSelectOutcome {
+        val video = settings.autoSelectVideoCalls.first()
+        val accepted = settings.autoSelectAcceptedMeetings.first()
+        if (!video && !accepted) return AutoSelectOutcome.Skipped
+        val dismissed = settings.dismissedEventIds.first()
+        val existing = selections.all().map { it.eventId }.toSet()
+        val events = try {
+            val ids = settings.enabledCalendarIds.first()
+                .ifEmpty { calendar.calendars().filter { it.primary }.map { it.id }.toSet() }
+            calendar.upcomingEvents(ids, now, now.plus(AUTO_SELECT_WINDOW))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return AutoSelectOutcome.Offline
+        }
+        events
+            .filter { it.start.isAfter(now) && it.id !in existing && it.id !in dismissed }
+            .filter { AutoSelectRules.matches(it, video, accepted) }
+            .forEach { selections.upsert(SelectedEvent(it.id, it.calendarId, it.title, it.start, leadMinutes = null)) }
+        return AutoSelectOutcome.Done
+    }
+
+    private companion object {
+        val AUTO_SELECT_WINDOW: java.time.Duration = java.time.Duration.ofDays(7)
     }
 
     private sealed interface Fetch {

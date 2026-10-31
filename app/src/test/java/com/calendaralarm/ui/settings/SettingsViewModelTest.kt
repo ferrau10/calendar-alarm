@@ -135,6 +135,18 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun autoSelectTogglesAreSaved() = runTest {
+        val vm = viewModel()
+        val current = state(vm)
+
+        vm.setAutoSelectVideoCalls(true)
+        vm.setAutoSelectAcceptedMeetings(true)
+
+        assertTrue(settings.autoVideo.value && settings.autoAccepted.value)
+        assertTrue(current().autoSelectVideoCalls && current().autoSelectAcceptedMeetings)
+    }
+
+    @Test
     fun testAlarmRingsInTenSeconds() = runTest {
         val vm = viewModel()
         val current = state(vm)

@@ -147,6 +147,7 @@ class EventsViewModelTest {
 
         vm.toggle(selected)
         assertTrue(selections.state.value.isEmpty())
+        assertEquals(setOf("a"), settings.dismissed.value) // remembered for auto-select rules
         assertNull(current().rows().single().alarmText)
     }
 

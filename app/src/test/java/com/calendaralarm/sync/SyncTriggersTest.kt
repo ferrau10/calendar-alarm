@@ -55,6 +55,19 @@ class SyncTriggersTest {
     }
 
     @Test
+    fun enablingAnAutoSelectRuleRefreshesFromCalendar() = runTest {
+        calendar.events["v"] = CalendarEvent("v", "primary", "Call", now.plusSeconds(3600), now.plusSeconds(5400), false, null, "https://meet/x")
+        SyncTriggers(selections, settings, syncer).start(backgroundScope)
+        settle()
+
+        settings.autoVideo.value = true
+        settle()
+
+        assertEquals(setOf("v"), selections.state.value.keys)
+        assertEquals(now.plusSeconds(3300), scheduler.alarms["v"]?.at)
+    }
+
+    @Test
     fun syncerOwnTitleUpdatesDoNotRetrigger() = runTest {
         selections.upsert(selected)
         SyncTriggers(selections, settings, syncer).start(backgroundScope)

@@ -3,6 +3,7 @@ package com.calendaralarm.data.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -43,13 +44,40 @@ class DataStoreSettingsStore(private val dataStore: DataStore<Preferences>) : Se
         dataStore.edit { it[ENABLED_CALENDARS] = ids }
     }
 
+    override val autoSelectVideoCalls: Flow<Boolean> = prefs.map { it[AUTO_VIDEO] ?: false }.distinctUntilChanged()
+
+    override suspend fun setAutoSelectVideoCalls(enabled: Boolean) {
+        dataStore.edit { it[AUTO_VIDEO] = enabled }
+    }
+
+    override val autoSelectAcceptedMeetings: Flow<Boolean> =
+        prefs.map { it[AUTO_ACCEPTED] ?: false }.distinctUntilChanged()
+
+    override suspend fun setAutoSelectAcceptedMeetings(enabled: Boolean) {
+        dataStore.edit { it[AUTO_ACCEPTED] = enabled }
+    }
+
+    override val dismissedEventIds: Flow<Set<String>> = prefs.map { it[DISMISSED].orEmpty() }.distinctUntilChanged()
+
+    override suspend fun addDismissedEventId(eventId: String) {
+        dataStore.edit {
+            // Bounded: oldest entries (by insertion order of the stored set) are dropped first.
+            val updated = (it[DISMISSED].orEmpty().toList() + eventId).distinct().takeLast(MAX_DISMISSED)
+            it[DISMISSED] = updated.toSet()
+        }
+    }
+
     companion object {
         const val MIN_LEAD_MINUTES = 0
+        const val MAX_DISMISSED = 500
         const val MAX_LEAD_MINUTES = 120
 
         fun clampLead(minutes: Int): Int = minutes.coerceIn(MIN_LEAD_MINUTES, MAX_LEAD_MINUTES)
 
         private val DEFAULT_LEAD = intPreferencesKey("default_lead_minutes")
         private val ENABLED_CALENDARS = stringSetPreferencesKey("enabled_calendar_ids")
+        private val AUTO_VIDEO = booleanPreferencesKey("auto_select_video_calls")
+        private val AUTO_ACCEPTED = booleanPreferencesKey("auto_select_accepted_meetings")
+        private val DISMISSED = stringSetPreferencesKey("dismissed_event_ids")
     }
 }
