@@ -45,6 +45,17 @@
             android:name=".alarm.AlarmReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".widget.NextAlarmWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_alarm_widget_info" />
+        </receiver>
+
         <!-- Exported only so the system can deliver these protected broadcasts; apps can't send them. -->
         <receiver
             android:name=".sync.android.RestoreAlarmsReceiver"
