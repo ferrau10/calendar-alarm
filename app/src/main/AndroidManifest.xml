@@ -8,6 +8,12 @@
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
+    <!-- Ringing: full-screen alarm over the lock screen, kept alive by a foreground service. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".CalendarAlarmApp"
@@ -25,9 +31,25 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".alarm.ringing.RingingActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:turnScreenOn="true" />
+
         <receiver
             android:name=".alarm.AlarmReceiver"
             android:exported="false" />
+
+        <!-- systemExempted: allowed for apps holding USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM to keep
+             an alarm ringing. -->
+        <service
+            android:name=".alarm.ringing.RingingService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
     </application>
 
 </manifest>
