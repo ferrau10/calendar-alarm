@@ -1,6 +1,8 @@
 package com.calendaralarm.ui.events
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.domain.CalendarEvent
@@ -20,7 +22,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class EventsViewModel(
+@HiltViewModel
+class EventsViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val calendar: CalendarRepository,
     private val selections: SelectionStore,
@@ -57,7 +60,16 @@ class EventsViewModel(
         refresh()
     }
 
+    private var lastRefresh: java.time.Instant? = null
+
+    /** Refreshes unless a refresh started very recently (avoids a double load right after creation). */
+    fun refreshIfStale() {
+        val last = lastRefresh
+        if (last == null || Duration.between(last, clock.instant()) > STALE_AFTER) refresh()
+    }
+
     fun refresh() {
+        lastRefresh = clock.instant()
         viewModelScope.launch {
             if (auth.account.value == null) {
                 load.value = Load.NotConnected
@@ -105,6 +117,7 @@ class EventsViewModel(
 
     companion object {
         val WINDOW: Duration = Duration.ofDays(7)
+        private val STALE_AFTER: Duration = Duration.ofSeconds(2)
         val LEAD_CHOICES = listOf(0, 1, 2, 5, 10, 15, 30)
     }
 }

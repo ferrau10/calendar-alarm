@@ -2,6 +2,8 @@ package com.calendaralarm.ui.onboarding
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.ui.permissions.PermissionChecker
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +30,8 @@ class PrefsOnboardingStore(context: Context) : OnboardingStore {
         set(value) = prefs.edit().putBoolean("completed", value).apply()
 }
 
-class OnboardingViewModel(
+@HiltViewModel
+class OnboardingViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val permissions: PermissionChecker,
     private val store: OnboardingStore,

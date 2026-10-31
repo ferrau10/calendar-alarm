@@ -1,6 +1,8 @@
 package com.calendaralarm.ui.settings
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.calendaralarm.domain.AlarmScheduler
 import com.calendaralarm.domain.AuthRepository
@@ -30,7 +32,8 @@ data class SettingsUiState(
     val testAlarmScheduled: Boolean = false,
 )
 
-class SettingsViewModel(
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val calendar: CalendarRepository,
     private val settings: SettingsStore,

@@ -78,6 +78,8 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

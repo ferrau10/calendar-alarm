@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.calendaralarm.ui.theme.CalendarAlarmTheme
 import java.time.Instant
@@ -55,6 +57,7 @@ import java.time.LocalDate
 @Composable
 fun EventsRoute(viewModel: EventsViewModel, onConnect: () -> Unit, onOpenSettings: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshIfStale() }
     EventsScreen(
         state = state,
         onRefresh = viewModel::refresh,
