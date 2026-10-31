@@ -11,6 +11,7 @@ import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,11 +48,19 @@ class EventsViewModelTest {
         allDay, null, null,
     ).also { calendar.events[id] = it }
 
+    private val defaultLocale = Locale.getDefault()
+
     @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    fun setUp() {
+        Locale.setDefault(Locale.UK) // 24-hour times in the expected strings
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
 
     @After
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() {
+        Dispatchers.resetMain()
+        Locale.setDefault(defaultLocale)
+    }
 
     private fun viewModel(email: String? = "me@example.com") =
         EventsViewModel(FakeAuth(email), calendar, selections, settings, clock)
