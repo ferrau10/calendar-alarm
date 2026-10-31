@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Calendar Alarm</string>
+    <string name="alarm_channel_name">Meeting alarms</string>
+    <string name="alarm_channel_description">Rings before the meetings you picked</string>
+    <string name="alarm_dismiss">Dismiss</string>
+    <string name="alarm_snooze">Snooze %1$d min</string>
+    <string name="alarm_untitled">Meeting</string>
+    <string name="alarm_subtitle">Meeting reminder</string>
 </resources>
