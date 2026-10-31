@@ -18,10 +18,17 @@ class FakeCalendar : CalendarRepository {
     val events = mutableMapOf<String, CalendarEvent>()
     var offline = false
     var fetches = 0
+    var calendarList = listOf(CalendarInfo("primary", "Me", "#4285f4", primary = true))
+    var failWith: Exception? = null
 
-    override suspend fun calendars(): List<CalendarInfo> = emptyList()
-    override suspend fun upcomingEvents(calendarIds: Set<String>, from: Instant, to: Instant) =
-        events.values.filter { it.calendarId in calendarIds }.sortedBy { it.start }
+    override suspend fun calendars(): List<CalendarInfo> {
+        failWith?.let { throw it }
+        return calendarList
+    }
+    override suspend fun upcomingEvents(calendarIds: Set<String>, from: Instant, to: Instant): List<CalendarEvent> {
+        failWith?.let { throw it }
+        return events.values.filter { it.calendarId in calendarIds && it.start < to && it.end > from }.sortedBy { it.start }
+    }
 
     override suspend fun event(calendarId: String, eventId: String): CalendarEvent? {
         fetches++
