@@ -7,6 +7,10 @@ configurable globally or per event). Alarms follow the meeting if it moves and d
 ## Status
 Work in progress — see the [issues](https://github.com/ferrau10/calendar-alarm/issues) for the roadmap.
 
+## Installing
+Download the APK from the latest [release](https://github.com/ferrau10/calendar-alarm/releases) — see
+[docs/release.md](docs/release.md) for installing and for making releases.
+
 ## Building
 Requires JDK 17+ and the Android SDK (platform 35). To sign in with Google you first need your own OAuth
 client IDs — see [docs/google-setup.md](docs/google-setup.md).
