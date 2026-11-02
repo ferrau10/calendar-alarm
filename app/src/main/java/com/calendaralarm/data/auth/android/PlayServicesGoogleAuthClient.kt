@@ -9,6 +9,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.calendaralarm.data.auth.AuthorizeOutcome
 import com.calendaralarm.data.auth.ConsentRequest
 import com.calendaralarm.data.auth.ConsentResult
@@ -55,6 +56,8 @@ class PlayServicesGoogleAuthClient(
             credentialManager.getCredential(activity, request).credential
         } catch (e: GetCredentialCancellationException) {
             throw SignInCancelledException()
+        } catch (e: NoCredentialException) {
+            throw IllegalStateException("No Google account on this phone. Add one in Settings → Accounts, then try again.", e)
         }
         if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
             return GoogleIdTokenCredential.createFrom(credential.data).id
