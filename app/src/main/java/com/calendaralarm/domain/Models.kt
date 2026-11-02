@@ -46,3 +46,6 @@ data class SelectedEvent(
 class NotAuthorizedException(message: String = "No Google account connected") : Exception(message)
 
 const val DEFAULT_LEAD_MINUTES = 5
+
+/** Alarm times offered when picking how long before a meeting to ring (default and per meeting). */
+val LEAD_TIME_CHOICES: List<Int> = listOf(1, 5, 20, 30)

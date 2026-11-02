@@ -1,6 +1,7 @@
 package com.calendaralarm.ui.events
 
 import com.calendaralarm.domain.CalendarEvent
+import com.calendaralarm.domain.DEFAULT_LEAD_MINUTES
 import com.calendaralarm.domain.SelectedEvent
 import java.time.Instant
 import java.time.LocalDate
@@ -33,7 +34,11 @@ sealed interface EventsUiState {
     data object Loading : EventsUiState
     data object NotConnected : EventsUiState
     data class Error(val message: String) : EventsUiState
-    data class Content(val sections: List<DaySection>, val refreshing: Boolean = false) : EventsUiState {
+    data class Content(
+        val sections: List<DaySection>,
+        val refreshing: Boolean = false,
+        val defaultLeadMinutes: Int = DEFAULT_LEAD_MINUTES,
+    ) : EventsUiState {
         val isEmpty: Boolean get() = sections.isEmpty()
     }
 }

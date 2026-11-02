@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.calendaralarm.domain.LEAD_TIME_CHOICES
 import com.calendaralarm.ui.events.EventsUiMapper
 import com.calendaralarm.ui.permissions.AppPermissions
 import com.calendaralarm.ui.permissions.PermissionState
@@ -116,14 +117,15 @@ fun SettingsScreen(
         ) {
             Section("Alarm time")
             Text(
-                "Ring this many minutes before the event: ${EventsUiMapper.leadText(state.defaultLeadMinutes)}",
+                "Default for all meetings: ${EventsUiMapper.leadText(state.defaultLeadMinutes)}. " +
+                    "To change a single meeting, tap “Change” under it in the list.",
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             FlowRow(
                 Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val choices = (SettingsViewModel.LEAD_CHOICES + state.defaultLeadMinutes).distinct().sorted()
+                val choices = (LEAD_TIME_CHOICES + state.defaultLeadMinutes).distinct().sorted()
                 choices.forEach { minutes ->
                     FilterChip(
                         selected = minutes == state.defaultLeadMinutes,

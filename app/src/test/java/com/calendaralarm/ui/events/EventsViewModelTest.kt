@@ -185,5 +185,22 @@ class EventsViewModelTest {
         settings.lead.value = 10
 
         assertEquals("Alarm at 09:50 (10 min before)", current().rows().single().alarmText)
+        assertEquals(10, (current() as EventsUiState.Content).defaultLeadMinutes)
+    }
+
+    @Test
+    fun differentMeetingsCanHaveDifferentAlarmTimes() = runTest {
+        event("a", 2)
+        event("b", 3)
+        val vm = viewModel()
+        val current = state(vm)
+        val (a, b) = current().rows()
+
+        vm.setLeadMinutes(a, 20)
+        vm.toggle(b)
+
+        assertEquals("Alarm at 09:40 (20 min before)", current().rows()[0].alarmText)
+        assertEquals("Alarm at 10:55 (5 min before)", current().rows()[1].alarmText)
+        assertEquals(listOf(1, 5, 20, 30), com.calendaralarm.domain.LEAD_TIME_CHOICES)
     }
 }

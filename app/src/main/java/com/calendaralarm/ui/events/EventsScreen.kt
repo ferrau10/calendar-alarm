@@ -2,6 +2,7 @@ package com.calendaralarm.ui.events
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.calendaralarm.domain.DEFAULT_LEAD_MINUTES
+import com.calendaralarm.domain.LEAD_TIME_CHOICES
 import com.calendaralarm.ui.theme.CalendarAlarmTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -111,6 +114,7 @@ fun EventsScreen(
     editing?.let { row ->
         LeadTimeDialog(
             row = row,
+            defaultLeadMinutes = (state as? EventsUiState.Content)?.defaultLeadMinutes ?: DEFAULT_LEAD_MINUTES,
             onPick = { minutes -> onSetLead(row, minutes); editing = null },
             onDismiss = { editing = null },
         )
@@ -175,7 +179,14 @@ private fun EventRowItem(row: EventRow, onToggle: (EventRow) -> Unit, onLongPres
             Text(row.title, style = MaterialTheme.typography.bodyLarge)
             Text(row.timeText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             row.alarmText?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "$it · Change",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .clickable(onClickLabel = "Change alarm time") { onLongPress(row) },
+                )
             }
         }
         Switch(checked = row.selected, onCheckedChange = { onToggle(row) }, enabled = !row.allDay)
@@ -183,13 +194,15 @@ private fun EventRowItem(row: EventRow, onToggle: (EventRow) -> Unit, onLongPres
 }
 
 @Composable
-private fun LeadTimeDialog(row: EventRow, onPick: (Int?) -> Unit, onDismiss: () -> Unit) {
+private fun LeadTimeDialog(row: EventRow, defaultLeadMinutes: Int, onPick: (Int?) -> Unit, onDismiss: () -> Unit) {
     var choice by remember { mutableStateOf(row.customLeadMinutes) }
+    val minutes = (LEAD_TIME_CHOICES + listOfNotNull(row.customLeadMinutes)).distinct().sorted()
     val options: List<Pair<Int?, String>> =
-        listOf<Pair<Int?, String>>(null to "Use default") + EventsViewModel.LEAD_CHOICES.map { it to EventsUiMapper.leadText(it) }
+        listOf<Pair<Int?, String>>(null to "Default (${EventsUiMapper.leadText(defaultLeadMinutes)})") +
+            minutes.map { it to EventsUiMapper.leadText(it) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ring before “${row.title}”") },
+        title = { Text("When should “${row.title}” ring?") },
         text = {
             Column {
                 options.forEach { (minutes, label) ->
