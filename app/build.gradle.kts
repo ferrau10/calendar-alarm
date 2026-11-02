@@ -103,11 +103,20 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.ktor.client.mock)
+}
+
+// Store screenshots: ./gradlew testDebugUnitTest --tests '*StoreScreenshots*' -Pscreenshots=true
+tasks.withType<Test>().configureEach {
+    systemProperty("screenshots", providers.gradleProperty("screenshots").getOrElse("false"))
+    systemProperty("screenshotDir", rootProject.file("play/listing/en-US/phone-screenshots").absolutePath)
 }

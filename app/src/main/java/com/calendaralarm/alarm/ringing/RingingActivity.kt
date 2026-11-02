@@ -86,6 +86,9 @@ class RingingActivity : ComponentActivity() {
 
 @Composable
 fun RingingScreen(label: String, onDismiss: () -> Unit, onSnooze: () -> Unit) {
+    // Labels look like "Standup · in 5 min": title large, timing as the subtitle.
+    val title = label.substringBefore(" · ")
+    val subtitle = label.substringAfter(" · ", missingDelimiterValue = "").let { if (it.isEmpty()) null else "Starts $it" }
     val formatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
     val time = remember { mutableStateOf(LocalTime.now()) }
     LaunchedEffect(Unit) {
@@ -103,12 +106,12 @@ fun RingingScreen(label: String, onDismiss: () -> Unit, onSnooze: () -> Unit) {
             Text(time.value.format(formatter), style = MaterialTheme.typography.displayLarge)
             Spacer(Modifier.height(24.dp))
             Text(
-                label,
+                title,
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.alarm_subtitle), style = MaterialTheme.typography.titleMedium)
+            Text(subtitle ?: stringResource(R.string.alarm_subtitle), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(64.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 FilledTonalButton(onClick = onSnooze, modifier = Modifier.weight(1f).height(64.dp)) {
