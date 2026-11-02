@@ -1,0 +1,91 @@
+name: TestFlight
+
+# Builds, signs and uploads the iPhone app to TestFlight / App Store Connect.
+# Run it from GitHub → Actions → TestFlight → Run workflow (works from a phone), or by pushing an `ios-v*` tag.
+# Needs the repository secrets listed in ios/README.md (App Store Connect API key, team id, Google client).
+on:
+  workflow_dispatch:
+  push:
+    tags: ['ios-v*']
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          GRID: ${{ secrets.GOOGLE_IOS_REVERSED_CLIENT_ID }}
+        run: |
+          missing=""
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY TEAM_ID GID GRID; do [ -z "${!v}" ] && missing="$missing $v"; done
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing (see ios/README.md)"; exit 1; fi
+
+      - name: Select newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Write configuration
+        env:
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          GRID: ${{ secrets.GOOGLE_IOS_REVERSED_CLIENT_ID }}
+        run: |
+          printf '%s\n' "GOOGLE_IOS_CLIENT_ID = $GID" "GOOGLE_IOS_REVERSED_CLIENT_ID = $GRID" > ios/Config/Secrets.xcconfig
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s\n' "$ASC_KEY" > "$RUNNER_TEMP/asc/AuthKey_$ASC_KEY_ID.p8"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+          </dict></plist>
+          PLIST
+
+      - name: Generate project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Archive and upload
+        shell: bash
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          auth=(-allowProvisioningUpdates
+                -authenticationKeyPath "$RUNNER_TEMP/asc/AuthKey_$ASC_KEY_ID.p8"
+                -authenticationKeyID "$ASC_KEY_ID"
+                -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          xcodebuild archive -project CalendarAlarm.xcodeproj -scheme CalendarAlarm \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/CalendarAlarm.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            "${auth[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/app.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/CalendarAlarm.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            "${auth[@]}" 2>&1 | tee -a "$GITHUB_WORKSPACE/app.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)|Upload"
+
+      - name: Report failures as annotations
+        if: failure()
+        run: python3 .github/scripts/report_failures.py app.log
+
+      - name: Clean up key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc" ios/Config/Secrets.xcconfig
