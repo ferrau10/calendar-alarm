@@ -20,12 +20,12 @@ data class EventRow(
     val colorHex: String?,
     val allDay: Boolean,
     val selected: Boolean,
-    /** When the alarm rings, if selected. */
+    /** When the first alarm rings, if selected. */
     val alarmAt: Instant?,
-    /** e.g. "Alarm at 08:55 (5 min before)", if selected. */
+    /** e.g. "Alarm at 08:55 (5 min before)" or "Alarms at 08:15 and 08:55 (45 and 5 min before)". */
     val alarmText: String?,
-    /** Per-event lead time, or null when using the default. */
-    val customLeadMinutes: Int?,
+    /** Per-event lead times, or null when using the default. */
+    val customLeadMinutes: List<Int>?,
 )
 
 data class DaySection(val date: LocalDate, val label: String, val rows: List<EventRow>)
@@ -74,8 +74,7 @@ class EventsUiMapper(
         colors: Map<String, String?>,
         defaultLead: Int,
     ): EventRow {
-        val lead = selection?.leadMinutes ?: defaultLead
-        val alarmAt = selection?.alarmTime(defaultLead)
+        val alarms = selection?.alarms(defaultLead).orEmpty()
         return EventRow(
             eventId = event.id,
             calendarId = event.calendarId,
@@ -85,8 +84,11 @@ class EventsUiMapper(
             colorHex = colors[event.calendarId],
             allDay = event.allDay,
             selected = selection != null,
-            alarmAt = alarmAt,
-            alarmText = alarmAt?.let { "Alarm at ${timeFormat.format(it)} (${leadText(lead)})" },
+            alarmAt = alarms.firstOrNull()?.at,
+            alarmText = alarms.takeIf { it.isNotEmpty() }?.let { list ->
+                val times = joinWithAnd(list.map { timeFormat.format(it.at) })
+                (if (list.size == 1) "Alarm at " else "Alarms at ") + "$times (${leadsText(list.map { it.leadMinutes })})"
+            },
             customLeadMinutes = selection?.leadMinutes,
         )
     }
@@ -99,5 +101,21 @@ class EventsUiMapper(
 
     companion object {
         fun leadText(minutes: Int): String = if (minutes == 0) "at start time" else "$minutes min before"
+
+        /** "5 min before", "45 and 5 min before", "10 min before and at start time". */
+        fun leadsText(minutes: List<Int>): String {
+            val nonZero = minutes.filter { it != 0 }
+            val parts = buildList {
+                if (nonZero.isNotEmpty()) add("${joinWithAnd(nonZero.map(Int::toString))} min before")
+                if (0 in minutes) add("at start time")
+            }
+            return joinWithAnd(parts)
+        }
+
+        fun joinWithAnd(items: List<String>): String = when (items.size) {
+            0 -> ""
+            1 -> items[0]
+            else -> items.dropLast(1).joinToString(", ") + " and " + items.last()
+        }
     }
 }

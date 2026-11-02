@@ -33,7 +33,7 @@ class AlarmSyncerTest {
 
     private suspend fun select(e: CalendarEvent, lead: Int? = null) {
         calendar.events[e.id] = e
-        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, lead))
+        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, lead?.let { listOf(it) }))
     }
 
     @Test
@@ -42,9 +42,9 @@ class AlarmSyncerTest {
 
         val result = syncer.sync()
 
-        assertEquals(FakeScheduler.Alarm(at(55), "Meeting a"), scheduler.alarms["a"])
-        assertEquals(setOf("a"), result.scheduled)
-        assertEquals(setOf("a"), registry.stored)
+        assertEquals(FakeScheduler.Alarm(at(55), "Meeting a · in 5 min"), scheduler.alarms["a@5"])
+        assertEquals(setOf("a@5"), result.scheduled)
+        assertEquals(setOf("a@5"), registry.stored)
     }
 
     @Test
@@ -53,7 +53,7 @@ class AlarmSyncerTest {
 
         syncer.sync()
 
-        assertEquals(at(45), scheduler.alarms["a"]?.at)
+        assertEquals(at(45), scheduler.alarms["a@15"]?.at)
     }
 
     @Test
@@ -64,7 +64,7 @@ class AlarmSyncerTest {
 
         val result = syncer.sync()
 
-        assertEquals(at(115), scheduler.alarms["a"]?.at)
+        assertEquals(at(115), scheduler.alarms["a@5"]?.at)
         assertEquals(at(120), selections.state.value["a"]?.start)
         assertEquals(setOf("a"), result.updatedSelections)
     }
@@ -76,7 +76,7 @@ class AlarmSyncerTest {
 
         syncer.sync()
 
-        assertEquals("Renamed", scheduler.alarms["a"]?.label)
+        assertEquals("Renamed · in 5 min", scheduler.alarms["a@5"]?.label)
         assertEquals("Renamed", selections.state.value["a"]?.title)
     }
 
@@ -88,10 +88,10 @@ class AlarmSyncerTest {
 
         val result = syncer.sync()
 
-        assertNull(scheduler.alarms["a"])
+        assertNull(scheduler.alarms["a@5"])
         assertTrue(selections.state.value.isEmpty())
         assertEquals(setOf("a"), result.removedSelections)
-        assertEquals(setOf("a"), result.cancelled)
+        assertEquals(setOf("a@5"), result.cancelled)
         assertTrue(registry.stored.isEmpty())
     }
 
@@ -103,7 +103,7 @@ class AlarmSyncerTest {
         syncer.sync()
 
         assertEquals(setOf("future"), selections.state.value.keys)
-        assertEquals(setOf("future"), scheduler.alarms.keys)
+        assertEquals(setOf("future@5"), scheduler.alarms.keys)
     }
 
     @Test
@@ -125,7 +125,7 @@ class AlarmSyncerTest {
 
         syncer.sync(refreshFromCalendar = false)
 
-        assertEquals(at(50), scheduler.alarms["a"]?.at)
+        assertEquals(at(50), scheduler.alarms["a@10"]?.at)
     }
 
     @Test
@@ -137,8 +137,8 @@ class AlarmSyncerTest {
 
         val result = syncer.sync(refreshFromCalendar = false)
 
-        assertEquals(setOf("b"), scheduler.alarms.keys)
-        assertEquals(setOf("a"), result.cancelled)
+        assertEquals(setOf("b@5"), scheduler.alarms.keys)
+        assertEquals(setOf("a@5"), result.cancelled)
     }
 
     @Test
@@ -150,7 +150,7 @@ class AlarmSyncerTest {
         val result = syncer.sync()
 
         assertTrue(result.offline)
-        assertEquals(FakeScheduler.Alarm(at(55), "Meeting a"), scheduler.alarms["a"])
+        assertEquals(FakeScheduler.Alarm(at(55), "Meeting a · in 5 min"), scheduler.alarms["a@5"])
         assertEquals(setOf("a"), selections.state.value.keys)
     }
 
@@ -163,6 +163,44 @@ class AlarmSyncerTest {
 
         assertEquals(0, calendar.fetches)
         assertFalse(result.offline)
-        assertEquals(at(55), scheduler.alarms["a"]?.at)
+        assertEquals(at(55), scheduler.alarms["a@5"]?.at)
+    }
+
+    @Test
+    fun multipleLeadTimesScheduleOneAlarmEach() = runTest {
+        val e = event("a", startIn = 60)
+        calendar.events[e.id] = e
+        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, listOf(5, 45)))
+
+        val result = syncer.sync()
+
+        assertEquals(setOf("a@45", "a@5"), result.scheduled)
+        assertEquals(FakeScheduler.Alarm(at(15), "Meeting a · in 45 min"), scheduler.alarms["a@45"])
+        assertEquals(FakeScheduler.Alarm(at(55), "Meeting a · in 5 min"), scheduler.alarms["a@5"])
+    }
+
+    @Test
+    fun removingOneLeadTimeCancelsOnlyThatAlarm() = runTest {
+        val e = event("a", startIn = 60)
+        calendar.events[e.id] = e
+        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, listOf(45, 5)))
+        syncer.sync()
+
+        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, listOf(5)))
+        val result = syncer.sync(refreshFromCalendar = false)
+
+        assertEquals(setOf("a@5"), scheduler.alarms.keys)
+        assertEquals(setOf("a@45"), result.cancelled)
+    }
+
+    @Test
+    fun alarmsFromBeforeTheUpdateAreCancelled() = runTest {
+        registry.stored = setOf("a") // key format of version 0.1
+        select(event("a", startIn = 60))
+
+        val result = syncer.sync()
+
+        assertEquals(setOf("a"), result.cancelled)
+        assertEquals(setOf("a@5"), registry.stored)
     }
 }

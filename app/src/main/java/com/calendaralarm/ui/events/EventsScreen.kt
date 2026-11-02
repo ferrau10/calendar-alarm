@@ -40,6 +40,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Checkbox
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,7 +85,7 @@ fun EventsScreen(
     state: EventsUiState,
     onRefresh: () -> Unit,
     onToggle: (EventRow) -> Unit,
-    onSetLead: (EventRow, Int?) -> Unit,
+    onSetLead: (EventRow, List<Int>?) -> Unit,
     onConnect: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -197,53 +202,76 @@ private fun EventRowItem(row: EventRow, onToggle: (EventRow) -> Unit, onLongPres
 }
 
 @Composable
-private fun LeadTimeDialog(row: EventRow, defaultLeadMinutes: Int, onPick: (Int?) -> Unit, onDismiss: () -> Unit) {
-    val current = row.customLeadMinutes
-    // A saved value that isn't one of the presets opens in "Custom" mode.
-    var custom by remember { mutableStateOf(current != null && current !in LEAD_TIME_CHOICES) }
-    var preset by remember { mutableStateOf(current.takeIf { it in LEAD_TIME_CHOICES }) }
-    var customText by remember { mutableStateOf(if (custom) current.toString() else "") }
+private fun LeadTimeDialog(row: EventRow, defaultLeadMinutes: Int, onPick: (List<Int>?) -> Unit, onDismiss: () -> Unit) {
+    var useDefault by remember { mutableStateOf(row.customLeadMinutes == null) }
+    val chosen = remember { mutableStateListOf<Int>().apply { addAll(row.customLeadMinutes.orEmpty()) } }
+    var customText by remember { mutableStateOf("") }
     val parsedCustom = parseLeadMinutes(customText)
+    val offered = (LEAD_TIME_CHOICES + chosen).distinct().sortedDescending()
 
-    val presets: List<Pair<Int?, String>> =
-        listOf<Pair<Int?, String>>(null to "Default (${EventsUiMapper.leadText(defaultLeadMinutes)})") +
-            LEAD_TIME_CHOICES.map { it to EventsUiMapper.leadText(it) }
-
-    @Composable
-    fun Option(selected: Boolean, label: String, onSelect: () -> Unit) {
-        Row(
-            Modifier.fillMaxWidth()
-                .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(selected = selected, onClick = null)
-            Spacer(Modifier.width(12.dp))
-            Text(label)
-        }
+    fun toggle(minutes: Int) {
+        useDefault = false
+        if (minutes in chosen) chosen.remove(minutes) else chosen.add(minutes)
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("When should “${row.title}” ring?") },
         text = {
-            Column {
-                presets.forEach { (minutes, label) ->
-                    Option(!custom && preset == minutes, label) { custom = false; preset = minutes }
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .selectable(selected = useDefault, onClick = { useDefault = true }, role = Role.RadioButton)
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = useDefault, onClick = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Default (${EventsUiMapper.leadText(defaultLeadMinutes)})")
                 }
-                Option(custom, "Custom") { custom = true }
-                if (custom) {
-                    CustomMinutesField(customText, { customText = it }, Modifier.fillMaxWidth().padding(start = 36.dp))
+                Row(
+                    Modifier.fillMaxWidth()
+                        .selectable(selected = !useDefault, onClick = { useDefault = false }, role = Role.RadioButton)
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = !useDefault, onClick = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Choose times (one alarm each)")
+                }
+                offered.forEach { minutes ->
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .toggleable(value = !useDefault && minutes in chosen, onValueChange = { toggle(minutes) }, role = Role.Checkbox)
+                            .padding(start = 24.dp, top = 2.dp, bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(checked = !useDefault && minutes in chosen, onCheckedChange = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(EventsUiMapper.leadText(minutes))
+                    }
+                }
+                Row(Modifier.padding(start = 24.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CustomMinutesField(customText, { customText = it }, Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(
+                        onClick = {
+                            (parsedCustom as? LeadMinutesInput.Valid)?.let {
+                                useDefault = false
+                                if (it.minutes !in chosen) chosen.add(it.minutes)
+                                customText = ""
+                            }
+                        },
+                        enabled = parsedCustom is LeadMinutesInput.Valid,
+                    ) { Text("Add") }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    if (!custom) onPick(preset) else (parsedCustom as? LeadMinutesInput.Valid)?.let { onPick(it.minutes) }
-                },
-                enabled = !custom || parsedCustom is LeadMinutesInput.Valid,
-            ) { Text("Set alarm") }
+                onClick = { onPick(if (useDefault) null else chosen.toList()) },
+                enabled = useDefault || chosen.isNotEmpty(),
+            ) { Text("Set alarms") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
