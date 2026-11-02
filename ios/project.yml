@@ -39,6 +39,7 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
+        NSAlarmKitUsageDescription: Calendar Alarm rings an alarm before the meetings you choose, so you never miss one.
         GIDClientID: $(GOOGLE_IOS_CLIENT_ID)
         CFBundleURLTypes:
           - CFBundleURLSchemes: [$(GOOGLE_IOS_REVERSED_CLIENT_ID)]
