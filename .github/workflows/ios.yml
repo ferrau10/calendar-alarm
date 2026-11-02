@@ -1,0 +1,54 @@
+name: iOS
+
+# Runs only for iOS changes (macOS runners are slow; Android CI ignores ios/**).
+on:
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        shell: bash
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+          major=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
+          if [ "$major" -lt 26 ]; then echo "::error::Need Xcode 26+ (iOS 26 SDK, AlarmKit); runner has $(xcodebuild -version | head -1)"; exit 1; fi
+
+      - name: Core logic tests
+        shell: bash
+        working-directory: ios/Packages/CalendarAlarmCore
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee "$GITHUB_WORKSPACE/core.log"
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build app for the simulator
+        shell: bash
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project CalendarAlarm.xcodeproj -scheme CalendarAlarm \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 \
+            | tee "$GITHUB_WORKSPACE/app.log" | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$GITHUB_WORKSPACE/app.log"
+
+      - name: Report failures as annotations
+        if: failure()
+        run: python3 .github/scripts/report_failures.py core.log app.log

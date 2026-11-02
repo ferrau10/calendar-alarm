@@ -13,9 +13,19 @@ def annotate(title, lines):
     print(f"::error title={title}::{msg}")
 
 
-log = open(sys.argv[1], errors="replace").read().splitlines() if len(sys.argv) > 1 else []
+log = []
+for path in sys.argv[1:]:
+    try:
+        log += open(path, errors="replace").read().splitlines()
+    except FileNotFoundError:
+        pass
 
-compile_errors = [l for l in log if re.match(r"^e: ", l) or "error:" in l and ".kt" in l][:40]
+compile_errors = [
+    l for l in log
+    if re.match(r"^e: ", l)
+    or ("error:" in l and (".kt" in l or ".swift" in l or "xcodebuild" in l or "XCTAssert" in l))
+    or re.search(r"Test Case .* failed", l)
+][:40]
 annotate("Compilation errors", compile_errors)
 
 went_wrong = []
