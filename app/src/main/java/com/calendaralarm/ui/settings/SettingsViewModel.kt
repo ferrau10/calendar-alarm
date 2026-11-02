@@ -129,7 +129,6 @@ class SettingsViewModel @Inject constructor(
     companion object {
         const val TEST_ALARM_KEY = "test-alarm"
         const val TEST_ALARM_DELAY_SECONDS = 10L
-        val LEAD_CHOICES = listOf(0, 1, 2, 5, 10, 15, 30, 60)
 
         /** No explicit choice means "primary calendar only". */
         fun effectiveSelection(enabled: Set<String>, calendars: List<CalendarInfo>): Set<String> =

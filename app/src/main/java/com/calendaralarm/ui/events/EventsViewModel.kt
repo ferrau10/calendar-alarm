@@ -52,6 +52,7 @@ class EventsViewModel @Inject constructor(
                         load.events, selected, load.colors, defaultLead, clock.instant().atZone(clock.zone).toLocalDate(),
                     ),
                     refreshing = load.refreshing,
+                    defaultLeadMinutes = defaultLead,
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EventsUiState.Loading)
@@ -119,6 +120,5 @@ class EventsViewModel @Inject constructor(
     companion object {
         val WINDOW: Duration = Duration.ofDays(7)
         private val STALE_AFTER: Duration = Duration.ofSeconds(2)
-        val LEAD_CHOICES = listOf(0, 1, 2, 5, 10, 15, 30)
     }
 }
