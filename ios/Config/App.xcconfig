@@ -1,0 +1,6 @@
+// Build settings for the app. Google OAuth values come from Secrets.xcconfig (git-ignored, see README).
+// Placeholders keep the app building without them; sign-in just won't work.
+GOOGLE_IOS_CLIENT_ID = missing.apps.googleusercontent.com
+GOOGLE_IOS_REVERSED_CLIENT_ID = com.googleusercontent.apps.missing
+
+#include? "Secrets.xcconfig"

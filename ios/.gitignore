@@ -4,3 +4,4 @@ CalendarAlarm/Info.plist
 .swiftpm/
 DerivedData/
 xcuserdata/
+Config/Secrets.xcconfig
