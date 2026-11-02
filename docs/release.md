@@ -44,6 +44,10 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
+**Or from a phone/browser:** on GitHub open **Releases → Draft a new release**, type the new tag
+(e.g. `v0.2.0`), choose *Create new tag on publish*, target `main`, then **Publish release**.
+The workflow attaches the APK to that release.
+
 A few minutes later the APK appears under **Releases** (`calendar-alarm-v0.1.0.apk`), with the R8
 mapping file for de-obfuscating crash reports.
 

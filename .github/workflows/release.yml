@@ -1,7 +1,7 @@
 name: Release
 
-# Runs only when a version tag is pushed (e.g. `git tag v0.1.0 && git push origin v0.1.0`),
-# so it costs nothing day to day.
+# Runs only when a version tag is pushed (e.g. `git tag v0.1.0 && git push origin v0.1.0`) or a release
+# with a new v* tag is created on github.com, so it costs nothing day to day.
 on:
   push:
     tags: ['v*']
@@ -48,6 +48,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "calendar-alarm-${GITHUB_REF_NAME}.apk" "mapping-${GITHUB_REF_NAME}.txt" \
-            --title "Calendar Alarm ${GITHUB_REF_NAME}" --generate-notes
+          files=("calendar-alarm-${GITHUB_REF_NAME}.apk" "mapping-${GITHUB_REF_NAME}.txt")
+          # A release created on github.com (which also creates the tag) just gets the APK attached.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${files[@]}" \
+              --title "Calendar Alarm ${GITHUB_REF_NAME}" --generate-notes
+          fi
