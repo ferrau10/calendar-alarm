@@ -1,0 +1,27 @@
+Notifications are easy to miss. Calendar Alarm makes your phone ring a real alarm before the meetings that matter, showing the meeting's name, so you never miss one again.
+
+HOW IT WORKS
+• Connect your Google account. Calendar Alarm only reads your calendar; it never changes it.
+• Tap the meetings you want an alarm for.
+• Choose when it rings: 1, 5, 20 or 30 minutes before, any custom time, or several alarms for the same meeting (for example 45 and 5 minutes before).
+• Your phone rings like an alarm clock: full screen over the lock screen, on the alarm volume, even when the phone is on silent. Snooze or dismiss with one tap.
+
+ALARMS THAT FOLLOW YOUR CALENDAR
+• Meeting moved? The alarm moves with it.
+• Meeting cancelled? The alarm is removed.
+• Offline? Your alarms stay exactly as they were.
+• Alarms come back automatically after restarting your phone.
+
+AUTOMATIC ALARMS (OPTIONAL)
+Give every video call, or every meeting you accepted with other people, an alarm automatically. Turn one off and it stays off.
+
+ALSO
+• A default alarm time for all meetings, and per-meeting overrides
+• Choose which calendars to show
+• Home-screen widget with your next alarm
+• Light and dark theme
+
+PRIVATE BY DESIGN
+No account with us, no servers, no ads, no tracking. Your calendar data stays on your phone and is only read from Google to show your events and ring your alarms.
+
+Questions or ideas? Open an issue at github.com/ferrau10/calendar-alarm
