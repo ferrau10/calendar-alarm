@@ -158,7 +158,7 @@ class EventsViewModelTest {
         val current = state(vm)
 
         vm.toggle(current().rows().single())
-        vm.setLeadMinutes(current().rows().single(), 10)
+        vm.setLeadMinutes(current().rows().single(), listOf(10))
 
         assertTrue(selections.state.value.isEmpty())
     }
@@ -169,9 +169,9 @@ class EventsViewModelTest {
         val vm = viewModel()
         val current = state(vm)
 
-        vm.setLeadMinutes(current().rows().single(), 15)
+        vm.setLeadMinutes(current().rows().single(), listOf(15))
 
-        assertEquals(15, selections.state.value["a"]?.leadMinutes)
+        assertEquals(listOf(15), selections.state.value["a"]?.leadMinutes)
         assertEquals("Alarm at 09:45 (15 min before)", current().rows().single().alarmText)
     }
 
@@ -196,7 +196,7 @@ class EventsViewModelTest {
         val current = state(vm)
         val (a, b) = current().rows()
 
-        vm.setLeadMinutes(a, 20)
+        vm.setLeadMinutes(a, listOf(20))
         vm.toggle(b)
 
         assertEquals("Alarm at 09:40 (20 min before)", current().rows()[0].alarmText)
@@ -205,14 +205,29 @@ class EventsViewModelTest {
     }
 
     @Test
+    fun severalAlarmsForOneMeeting() = runTest {
+        event("a", 2)
+        val vm = viewModel()
+        val current = state(vm)
+
+        vm.setLeadMinutes(current().rows().single(), listOf(5, 45, 5))
+
+        assertEquals(listOf(45, 5), selections.state.value["a"]?.leadMinutes)
+        assertEquals("Alarms at 09:15 and 09:55 (45 and 5 min before)", current().rows().single().alarmText)
+
+        vm.setLeadMinutes(current().rows().single(), emptyList())
+        assertEquals(null, selections.state.value["a"]?.leadMinutes) // back to the default
+    }
+
+    @Test
     fun customLeadTimeOutsideThePresetsWorks() = runTest {
         event("a", 2)
         val vm = viewModel()
         val current = state(vm)
 
-        vm.setLeadMinutes(current().rows().single(), 17)
+        vm.setLeadMinutes(current().rows().single(), listOf(17))
 
-        assertEquals(17, selections.state.value["a"]?.leadMinutes)
+        assertEquals(listOf(17), selections.state.value["a"]?.leadMinutes)
         assertEquals("Alarm at 09:43 (17 min before)", current().rows().single().alarmText)
     }
 }

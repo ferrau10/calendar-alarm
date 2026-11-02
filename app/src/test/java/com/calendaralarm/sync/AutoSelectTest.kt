@@ -65,7 +65,7 @@ class AutoSelectTest {
         syncer.sync()
 
         assertEquals(setOf("v"), selections.state.value.keys)
-        assertEquals(now.plus(Duration.ofHours(2)).minusSeconds(300), scheduler.alarms["v"]?.at)
+        assertEquals(now.plus(Duration.ofHours(2)).minusSeconds(300), scheduler.alarms["v@5"]?.at)
     }
 
     @Test
@@ -82,12 +82,12 @@ class AutoSelectTest {
     @Test
     fun existingSelectionKeepsCustomLeadTime() = runTest {
         val e = event("v", 2, meet = "https://meet.google.com/x")
-        selections.upsert(com.calendaralarm.domain.SelectedEvent(e.id, e.calendarId, e.title, e.start, 15))
+        selections.upsert(com.calendaralarm.domain.SelectedEvent(e.id, e.calendarId, e.title, e.start, listOf(15)))
         settings.autoVideo.value = true
 
         syncer.sync()
 
-        assertEquals(15, selections.state.value["v"]?.leadMinutes)
+        assertEquals(listOf(15), selections.state.value["v"]?.leadMinutes)
     }
 
     @Test

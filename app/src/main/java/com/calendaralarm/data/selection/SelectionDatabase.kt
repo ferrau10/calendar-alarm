@@ -9,6 +9,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "selected_events")
@@ -17,8 +19,8 @@ data class SelectedEventEntity(
     val calendarId: String,
     val title: String,
     val startEpochMillis: Long,
-    /** Minutes before start; null = use the global default. */
-    val leadMinutes: Int?,
+    /** Comma-separated minutes before start, e.g. "45,5"; null = use the global default. */
+    val leadMinutesCsv: String?,
 )
 
 @Dao
@@ -39,12 +41,33 @@ interface SelectedEventDao {
     suspend fun deleteStartedBefore(epochMillis: Long): Int
 }
 
-@Database(entities = [SelectedEventEntity::class], version = 1, exportSchema = false)
+@Database(entities = [SelectedEventEntity::class], version = 2, exportSchema = false)
 abstract class SelectionDatabase : RoomDatabase() {
     abstract fun selectedEventDao(): SelectedEventDao
 
     companion object {
         fun create(context: Context): SelectionDatabase =
-            Room.databaseBuilder(context.applicationContext, SelectionDatabase::class.java, "selections.db").build()
+            Room.databaseBuilder(context.applicationContext, SelectionDatabase::class.java, DB_NAME)
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        const val DB_NAME = "selections.db"
+
+        /** v2: one lead time (INTEGER) → several (comma-separated TEXT). Keeps existing selections. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `selected_events_new` (`eventId` TEXT NOT NULL, " +
+                        "`calendarId` TEXT NOT NULL, `title` TEXT NOT NULL, `startEpochMillis` INTEGER NOT NULL, " +
+                        "`leadMinutesCsv` TEXT, PRIMARY KEY(`eventId`))",
+                )
+                db.execSQL(
+                    "INSERT INTO `selected_events_new` (eventId, calendarId, title, startEpochMillis, leadMinutesCsv) " +
+                        "SELECT eventId, calendarId, title, startEpochMillis, CAST(leadMinutes AS TEXT) FROM `selected_events`",
+                )
+                db.execSQL("DROP TABLE `selected_events`")
+                db.execSQL("ALTER TABLE `selected_events_new` RENAME TO `selected_events`")
+            }
+        }
     }
 }

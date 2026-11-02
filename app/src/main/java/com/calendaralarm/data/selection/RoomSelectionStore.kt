@@ -26,7 +26,7 @@ internal fun SelectedEventEntity.toDomain() = SelectedEvent(
     calendarId = calendarId,
     title = title,
     start = Instant.ofEpochMilli(startEpochMillis),
-    leadMinutes = leadMinutes,
+    leadMinutes = leadMinutesCsv?.split(',')?.mapNotNull { it.trim().toIntOrNull() }?.takeIf { it.isNotEmpty() },
 )
 
 internal fun SelectedEvent.toEntity() = SelectedEventEntity(
@@ -34,5 +34,5 @@ internal fun SelectedEvent.toEntity() = SelectedEventEntity(
     calendarId = calendarId,
     title = title,
     startEpochMillis = start.toEpochMilli(),
-    leadMinutes = leadMinutes,
+    leadMinutesCsv = leadMinutes?.takeIf { it.isNotEmpty() }?.joinToString(","),
 )

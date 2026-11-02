@@ -24,7 +24,7 @@ class RoomSelectionStoreTest {
 
     private val t0 = Instant.parse("2026-11-02T08:00:00Z")
     private fun event(id: String, startOffsetMin: Long, lead: Int? = null, title: String = "Meeting $id") =
-        SelectedEvent(id, "primary", title, t0.plusSeconds(startOffsetMin * 60), lead)
+        SelectedEvent(id, "primary", title, t0.plusSeconds(startOffsetMin * 60), lead?.let { listOf(it) })
 
     @Before
     fun setUp() {
@@ -52,6 +52,13 @@ class RoomSelectionStoreTest {
         store.upsert(event("a", 90, lead = 2, title = "Moved"))
 
         assertEquals(listOf(event("a", 90, lead = 2, title = "Moved")), store.all())
+    }
+
+    @Test
+    fun severalLeadTimesRoundTrip() = runBlocking {
+        val e = SelectedEvent("a", "primary", "Standup", t0, listOf(45, 5))
+        store.upsert(e)
+        assertEquals(listOf(e), store.all())
     }
 
     @Test

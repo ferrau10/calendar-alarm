@@ -94,13 +94,14 @@ class AlarmSyncer(
 
         val scheduled = mutableSetOf<String>()
         for (selection in active) {
-            val triggerAt = selection.alarmTime(defaultLead)
-            if (triggerAt.isAfter(now)) {
-                scheduler.schedule(selection.eventId, triggerAt, selection.title)
-                scheduled += selection.eventId
-            } else {
-                // Alarm time already passed (e.g. lead time increased); make sure no stale alarm rings later.
-                scheduler.cancel(selection.eventId)
+            for (alarm in selection.alarms(defaultLead)) {
+                if (alarm.at.isAfter(now)) {
+                    scheduler.schedule(alarm.key, alarm.at, alarmLabel(selection.title, alarm.leadMinutes))
+                    scheduled += alarm.key
+                } else {
+                    // Alarm time already passed (e.g. lead time increased); make sure no stale alarm rings later.
+                    scheduler.cancel(alarm.key)
+                }
             }
         }
 
@@ -112,6 +113,9 @@ class AlarmSyncer(
     }
 
     private enum class AutoSelectOutcome { Skipped, Done, Offline }
+
+    internal fun alarmLabel(title: String, leadMinutes: Int): String =
+        if (leadMinutes == 0) title else "$title · in $leadMinutes min"
 
     /** Adds upcoming events matching the enabled auto-select rules, except ones the user turned off. */
     private suspend fun autoSelect(now: java.time.Instant): AutoSelectOutcome {

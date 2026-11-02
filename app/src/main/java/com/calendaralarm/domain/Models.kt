@@ -35,12 +35,31 @@ data class SelectedEvent(
     val calendarId: String,
     val title: String,
     val start: Instant,
-    /** Minutes before [start] the alarm should ring; `null` means "use the global default". */
-    val leadMinutes: Int?,
+    /**
+     * How many minutes before [start] to ring; one alarm per entry (e.g. `[45, 5]`).
+     * `null` (or empty) means "one alarm at the global default".
+     */
+    val leadMinutes: List<Int>?,
 ) {
-    fun alarmTime(defaultLeadMinutes: Int): Instant =
-        start.minus(Duration.ofMinutes((leadMinutes ?: defaultLeadMinutes).toLong()))
+    /** Lead times in effect, largest first (= earliest alarm first), without duplicates. */
+    fun leadTimes(defaultLeadMinutes: Int): List<Int> =
+        (leadMinutes?.takeIf { it.isNotEmpty() } ?: listOf(defaultLeadMinutes)).distinct().sortedDescending()
+
+    /** Every alarm for this event, earliest first. */
+    fun alarms(defaultLeadMinutes: Int): List<EventAlarm> = leadTimes(defaultLeadMinutes).map { lead ->
+        EventAlarm(alarmKey(eventId, lead), lead, start.minus(Duration.ofMinutes(lead.toLong())))
+    }
 }
+
+/** One alarm of a selected event. */
+data class EventAlarm(val key: String, val leadMinutes: Int, val at: Instant)
+
+/** Stable id of the alarm ringing [leadMinutes] before [eventId] starts. */
+fun alarmKey(eventId: String, leadMinutes: Int): String = "$eventId@$leadMinutes"
+
+/** Normalizes a picked set of lead times: largest first, no duplicates; empty means "use the default". */
+fun normalizeLeadTimes(minutes: Collection<Int>?): List<Int>? =
+    minutes?.distinct()?.sortedDescending()?.takeIf { it.isNotEmpty() }
 
 /** Thrown by [AuthRepository.accessToken] when no Google account is connected or access was revoked. */
 class NotAuthorizedException(message: String = "No Google account connected") : Exception(message)

@@ -56,7 +56,7 @@ class EventsUiMapperTest {
         val c = event("c", "2026-11-02T11:00:00Z", "2026-11-02T11:30:00Z")
         val selections = listOf(
             SelectedEvent("a", "work", a.title, a.start, null),
-            SelectedEvent("b", "primary", b.title, b.start, 15),
+            SelectedEvent("b", "primary", b.title, b.start, listOf(15)),
         )
 
         val rows = mapper.sections(listOf(a, b, c), selections, mapOf("work" to "#ff0000"), 5, today).single().rows
@@ -68,10 +68,22 @@ class EventsUiMapperTest {
         assertEquals("#ff0000", rows[0].colorHex)
 
         assertEquals("Alarm at 10:45 (15 min before)", rows[1].alarmText)
-        assertEquals(15, rows[1].customLeadMinutes)
+        assertEquals(listOf(15), rows[1].customLeadMinutes)
 
         assertFalse(rows[2].selected)
         assertNull(rows[2].alarmText)
+    }
+
+    @Test
+    fun severalAlarmsAreListed() {
+        val a = event("a", "2026-11-02T09:00:00Z", "2026-11-02T09:30:00Z")
+        val selections = listOf(SelectedEvent("a", "primary", a.title, a.start, listOf(5, 45)))
+
+        val row = mapper.sections(listOf(a), selections, emptyMap(), 5, today).single().rows.single()
+
+        assertEquals("Alarms at 09:15 and 09:55 (45 and 5 min before)", row.alarmText)
+        assertEquals(Instant.parse("2026-11-02T08:15:00Z"), row.alarmAt)
+        assertEquals("10 min before and at start time", EventsUiMapper.leadsText(listOf(10, 0)))
     }
 
     @Test

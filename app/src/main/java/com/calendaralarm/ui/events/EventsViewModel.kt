@@ -11,6 +11,7 @@ import com.calendaralarm.domain.NotAuthorizedException
 import com.calendaralarm.domain.SelectedEvent
 import com.calendaralarm.domain.SelectionStore
 import com.calendaralarm.domain.SettingsStore
+import com.calendaralarm.domain.normalizeLeadTimes
 import java.time.Clock
 import java.time.Duration
 import kotlinx.coroutines.CancellationException
@@ -109,11 +110,11 @@ class EventsViewModel @Inject constructor(
         }
     }
 
-    /** Sets a per-event lead time ([minutes] = null to use the default); also turns the alarm on. */
-    fun setLeadMinutes(row: EventRow, minutes: Int?) {
+    /** Sets this event's alarm times ([minutes] = null/empty to use the default); also turns the alarm on. */
+    fun setLeadMinutes(row: EventRow, minutes: List<Int>?) {
         if (row.allDay) return
         viewModelScope.launch {
-            selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, minutes))
+            selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, normalizeLeadTimes(minutes)))
         }
     }
 

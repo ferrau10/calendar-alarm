@@ -40,15 +40,15 @@ class SyncTriggersTest {
 
         selections.upsert(selected)
         settle()
-        assertEquals(now.plusSeconds(3300), scheduler.alarms["a"]?.at)
+        assertEquals(now.plusSeconds(3300), scheduler.alarms["a@5"]?.at)
 
         settings.lead.value = 10
         settle()
-        assertEquals(now.plusSeconds(3000), scheduler.alarms["a"]?.at)
+        assertEquals(now.plusSeconds(3000), scheduler.alarms["a@10"]?.at)
 
-        selections.upsert(selected.copy(leadMinutes = 1))
+        selections.upsert(selected.copy(leadMinutes = listOf(1)))
         settle()
-        assertEquals(now.plusSeconds(3540), scheduler.alarms["a"]?.at)
+        assertEquals(now.plusSeconds(3540), scheduler.alarms["a@1"]?.at)
 
         assertEquals(0, calendar.fetches)
         job.cancel()
@@ -64,7 +64,7 @@ class SyncTriggersTest {
         settle()
 
         assertEquals(setOf("v"), selections.state.value.keys)
-        assertEquals(now.plusSeconds(3300), scheduler.alarms["v"]?.at)
+        assertEquals(now.plusSeconds(3300), scheduler.alarms["v@5"]?.at)
     }
 
     @Test
