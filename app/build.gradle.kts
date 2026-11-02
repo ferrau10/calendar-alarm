@@ -17,14 +17,14 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.calendaralarm"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.calendaralarm"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 4
-        versionName = "0.2.0"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "0.3.0"
 
         buildConfigField(
             "String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"",
