@@ -2,14 +2,36 @@ import SwiftUI
 
 @main
 struct CalendarAlarmApp: App {
-    @StateObject private var auth = AuthService()
+    @StateObject private var auth: AuthService
+    @StateObject private var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        let auth = AuthService()
+        _auth = StateObject(wrappedValue: auth)
+        _model = StateObject(wrappedValue: AppModel(auth: auth))
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            EventsView()
                 .environmentObject(auth)
-                .task { await auth.restore() }
+                .environmentObject(model)
+                .task {
+                    await auth.restore()
+                    await model.refresh()
+                }
                 .onOpenURL { _ = auth.handle(url: $0) }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active: Task { await model.refresh() }
+            case .background: model.scheduleBackgroundRefresh()
+            default: break
+            }
+        }
+        .backgroundTask(.appRefresh(AppModel.refreshTaskId)) {
+            await model.backgroundSync()
         }
     }
 }

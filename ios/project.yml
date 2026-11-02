@@ -15,7 +15,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.2.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   CalendarAlarm:
@@ -40,6 +40,8 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
         NSAlarmKitUsageDescription: Calendar Alarm rings an alarm before the meetings you choose, so you never miss one.
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [io.github.ferrau10.calendaralarm.refresh]
         GIDClientID: $(GOOGLE_IOS_CLIENT_ID)
         CFBundleURLTypes:
           - CFBundleURLSchemes: [$(GOOGLE_IOS_REVERSED_CLIENT_ID)]
