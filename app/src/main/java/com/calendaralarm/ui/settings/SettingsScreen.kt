@@ -35,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +50,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.calendaralarm.domain.LEAD_TIME_CHOICES
 import com.calendaralarm.ui.events.EventsUiMapper
+import com.calendaralarm.ui.leadtime.CustomMinutesDialog
 import com.calendaralarm.ui.permissions.AppPermissions
 import com.calendaralarm.ui.permissions.PermissionState
 import com.calendaralarm.ui.theme.CalendarAlarmTheme
@@ -100,6 +104,15 @@ fun SettingsScreen(
     onAutoVideoChange: (Boolean) -> Unit = {},
     onAutoAcceptedChange: (Boolean) -> Unit = {},
 ) {
+    var customDefault by remember { mutableStateOf(false) }
+    if (customDefault) {
+        CustomMinutesDialog(
+            title = "Default alarm time",
+            initialMinutes = state.defaultLeadMinutes,
+            onSave = { onLeadChange(it); customDefault = false },
+            onDismiss = { customDefault = false },
+        )
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -133,6 +146,7 @@ fun SettingsScreen(
                         label = { Text(if (minutes == 0) "0 min" else "$minutes min") },
                     )
                 }
+                FilterChip(selected = false, onClick = { customDefault = true }, label = { Text("Custom…") })
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

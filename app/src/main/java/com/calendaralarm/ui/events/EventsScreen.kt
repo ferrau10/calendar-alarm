@@ -53,6 +53,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.calendaralarm.domain.DEFAULT_LEAD_MINUTES
 import com.calendaralarm.domain.LEAD_TIME_CHOICES
+import com.calendaralarm.ui.leadtime.CustomMinutesField
+import com.calendaralarm.ui.leadtime.LeadMinutesInput
+import com.calendaralarm.ui.leadtime.parseLeadMinutes
 import com.calendaralarm.ui.theme.CalendarAlarmTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -195,31 +198,53 @@ private fun EventRowItem(row: EventRow, onToggle: (EventRow) -> Unit, onLongPres
 
 @Composable
 private fun LeadTimeDialog(row: EventRow, defaultLeadMinutes: Int, onPick: (Int?) -> Unit, onDismiss: () -> Unit) {
-    var choice by remember { mutableStateOf(row.customLeadMinutes) }
-    val minutes = (LEAD_TIME_CHOICES + listOfNotNull(row.customLeadMinutes)).distinct().sorted()
-    val options: List<Pair<Int?, String>> =
+    val current = row.customLeadMinutes
+    // A saved value that isn't one of the presets opens in "Custom" mode.
+    var custom by remember { mutableStateOf(current != null && current !in LEAD_TIME_CHOICES) }
+    var preset by remember { mutableStateOf(current.takeIf { it in LEAD_TIME_CHOICES }) }
+    var customText by remember { mutableStateOf(if (custom) current.toString() else "") }
+    val parsedCustom = parseLeadMinutes(customText)
+
+    val presets: List<Pair<Int?, String>> =
         listOf<Pair<Int?, String>>(null to "Default (${EventsUiMapper.leadText(defaultLeadMinutes)})") +
-            minutes.map { it to EventsUiMapper.leadText(it) }
+            LEAD_TIME_CHOICES.map { it to EventsUiMapper.leadText(it) }
+
+    @Composable
+    fun Option(selected: Boolean, label: String, onSelect: () -> Unit) {
+        Row(
+            Modifier.fillMaxWidth()
+                .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Spacer(Modifier.width(12.dp))
+            Text(label)
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("When should “${row.title}” ring?") },
         text = {
             Column {
-                options.forEach { (minutes, label) ->
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .selectable(selected = choice == minutes, onClick = { choice = minutes }, role = Role.RadioButton)
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = choice == minutes, onClick = null)
-                        Spacer(Modifier.width(12.dp))
-                        Text(label)
-                    }
+                presets.forEach { (minutes, label) ->
+                    Option(!custom && preset == minutes, label) { custom = false; preset = minutes }
+                }
+                Option(custom, "Custom") { custom = true }
+                if (custom) {
+                    CustomMinutesField(customText, { customText = it }, Modifier.fillMaxWidth().padding(start = 36.dp))
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onPick(choice) }) { Text("Set alarm") } },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (!custom) onPick(preset) else (parsedCustom as? LeadMinutesInput.Valid)?.let { onPick(it.minutes) }
+                },
+                enabled = !custom || parsedCustom is LeadMinutesInput.Valid,
+            ) { Text("Set alarm") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

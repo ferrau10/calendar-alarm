@@ -203,4 +203,16 @@ class EventsViewModelTest {
         assertEquals("Alarm at 10:55 (5 min before)", current().rows()[1].alarmText)
         assertEquals(listOf(1, 5, 20, 30), com.calendaralarm.domain.LEAD_TIME_CHOICES)
     }
+
+    @Test
+    fun customLeadTimeOutsideThePresetsWorks() = runTest {
+        event("a", 2)
+        val vm = viewModel()
+        val current = state(vm)
+
+        vm.setLeadMinutes(current().rows().single(), 17)
+
+        assertEquals(17, selections.state.value["a"]?.leadMinutes)
+        assertEquals("Alarm at 09:43 (17 min before)", current().rows().single().alarmText)
+    }
 }
