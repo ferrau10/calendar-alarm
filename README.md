@@ -18,3 +18,8 @@ client IDs — see [docs/google-setup.md](docs/google-setup.md).
 ```bash
 ./gradlew assembleDebug
 ```
+
+## Publishing
+- Google Play: [docs/play-console.md](docs/play-console.md), [play/listing/](play/listing/README.md)
+- Google sign-in verification: [docs/oauth-verification.md](docs/oauth-verification.md)
+- Releases: [docs/release.md](docs/release.md)
