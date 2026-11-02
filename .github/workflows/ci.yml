@@ -7,6 +7,11 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'site/**'
+      - 'play/**'
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 concurrency:

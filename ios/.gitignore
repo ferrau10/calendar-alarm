@@ -1,0 +1,6 @@
+*.xcodeproj/
+CalendarAlarm/Info.plist
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
