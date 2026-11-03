@@ -86,7 +86,7 @@ Google Play re-signs the app with its own **app signing key**; your `release.jks
 3. Still under **App integrity → App signing**, copy the **SHA-1 certificate fingerprint** of the
    **App signing key**.
 4. Google Cloud → **Google Auth Platform → Clients → Create client → Android**, package
-   `com.calendaralarm`, that SHA-1. Without this, sign-in fails (`DEVELOPER_ERROR`) in the app installed
+   `io.github.ferrau10.calendaralarm`, that SHA-1. Without this, sign-in fails (`DEVELOPER_ERROR`) in the app installed
    from Google Play, because it's signed with Google's key, not yours.
 
 Keep the existing Android clients too: they're what makes the APK from GitHub Releases work.
