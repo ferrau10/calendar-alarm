@@ -51,7 +51,7 @@ well. Each signing key needs its own Android client.
 
 - Application type: **Android**
 - Name: `Calendar Alarm (debug)`
-- Package name: `com.calendaralarm`
+- Package name: `io.github.ferrau10.calendaralarm`
 - SHA-1 certificate fingerprint: the value from step 3
 
 Click **Create**. There is nothing to copy from this client; its existence is what allows the app to obtain

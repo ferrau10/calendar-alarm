@@ -20,11 +20,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.calendaralarm"
+        applicationId = "io.github.ferrau10.calendaralarm"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.3.0"
+        versionCode = 6
+        versionName = "0.3.1"
 
         buildConfigField(
             "String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"",
