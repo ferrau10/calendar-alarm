@@ -4,6 +4,7 @@ import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.domain.CalendarEvent
 import com.calendaralarm.domain.CalendarInfo
 import com.calendaralarm.domain.NotAuthorizedException
+import com.calendaralarm.sync.FakeAuth
 import com.calendaralarm.sync.FakeCalendar
 import com.calendaralarm.sync.FakeSelectionStore
 import com.calendaralarm.sync.FakeSettings
@@ -33,12 +34,6 @@ class EventsViewModelTest {
     private val now = Instant.parse("2026-11-02T08:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
-    private class FakeAuth(email: String?) : AuthRepository {
-        override val account: StateFlow<String?> = MutableStateFlow(email)
-        override suspend fun accessToken() = "token"
-        override suspend fun disconnect() {}
-    }
-
     private val calendar = FakeCalendar()
     private val selections = FakeSelectionStore()
     private val settings = FakeSettings()
@@ -63,7 +58,7 @@ class EventsViewModelTest {
     }
 
     private fun viewModel(email: String? = "me@example.com") =
-        EventsViewModel(FakeAuth(email), calendar, selections, settings, clock)
+        EventsViewModel(FakeAuth(*listOfNotNull(email).toTypedArray()), calendar, selections, settings, clock)
 
     /** Collects uiState so the WhileSubscribed flow is active, returning the latest value. */
     private fun kotlinx.coroutines.test.TestScope.state(vm: EventsViewModel): () -> EventsUiState {

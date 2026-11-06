@@ -4,26 +4,30 @@ import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Connection to the user's Google account (issue #4). */
+/** Connections to the user's Google accounts (#4, several accounts: #72). */
 interface AuthRepository {
-    /** Email of the connected account, or `null` when not connected. */
-    val account: StateFlow<String?>
+    /** Emails of the connected accounts, in the order they were added; empty when none is connected. */
+    val accounts: StateFlow<List<String>>
 
-    /** A valid OAuth access token with the Calendar read-only scope. @throws NotAuthorizedException */
-    suspend fun accessToken(): String
+    /** A valid OAuth access token for [account] with the Calendar read-only scope. @throws NotAuthorizedException */
+    suspend fun accessToken(account: String): String
 
-    suspend fun disconnect()
+    /** Disconnects one account. */
+    suspend fun disconnect(account: String)
 }
 
-/** Read access to Google Calendar (issue #5). */
+/** Read access to Google Calendar across all connected accounts (#5, #72). */
 interface CalendarRepository {
+    /** Calendars of every connected account, each tagged with its [CalendarInfo.account]. */
     suspend fun calendars(): List<CalendarInfo>
 
-    /** Events overlapping [from, to) across [calendarIds], sorted by start time. */
+    /** Events overlapping [from, to) across [calendarIds], sorted by start time; the same meeting seen
+     *  through two accounts appears once. */
     suspend fun upcomingEvents(calendarIds: Set<String>, from: Instant, to: Instant): List<CalendarEvent>
 
-    /** The latest version of an event, or `null` if it was deleted or cancelled. */
-    suspend fun event(calendarId: String, eventId: String): CalendarEvent?
+    /** The latest version of an event, read through [account] (null = whichever account owns the calendar),
+     *  or `null` if it was deleted or cancelled. */
+    suspend fun event(account: String?, calendarId: String, eventId: String): CalendarEvent?
 }
 
 /** Events the user selected for an alarm (issue #6). */

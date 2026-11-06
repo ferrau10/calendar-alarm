@@ -26,6 +26,8 @@ data class EventRow(
     val alarmText: String?,
     /** Per-event lead times, or null when using the default. */
     val customLeadMinutes: List<Int>?,
+    /** Google account the event comes from. */
+    val account: String = "",
 )
 
 data class DaySection(val date: LocalDate, val label: String, val rows: List<EventRow>)
@@ -90,6 +92,7 @@ class EventsUiMapper(
                 (if (list.size == 1) "Alarm at " else "Alarms at ") + "$times (${leadsText(list.map { it.leadMinutes })})"
             },
             customLeadMinutes = selection?.leadMinutes,
+            account = event.account,
         )
     }
 

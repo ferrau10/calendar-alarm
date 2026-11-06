@@ -203,4 +203,18 @@ class AlarmSyncerTest {
         assertEquals(setOf("a"), result.cancelled)
         assertEquals(setOf("a@5"), registry.stored)
     }
+
+    @Test
+    fun refreshUsesTheSelectionsAccountAndBackfillsMissingOnes() = runTest {
+        val e = event("a", startIn = 60).copy(account = "work@example.com")
+        calendar.events[e.id] = e
+        selections.upsert(SelectedEvent(e.id, e.calendarId, e.title, e.start, null, account = null))
+
+        syncer.sync()
+
+        assertEquals("work@example.com", selections.state.value["a"]?.account)
+        syncer.sync()
+        assertEquals("work@example.com", calendar.lastEventAccount)
+    }
 }
+

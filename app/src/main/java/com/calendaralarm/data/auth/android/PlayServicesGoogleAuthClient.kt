@@ -1,5 +1,6 @@
 package com.calendaralarm.data.auth.android
 
+import android.accounts.Account
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Context
@@ -65,9 +66,10 @@ class PlayServicesGoogleAuthClient(
         throw IllegalStateException("Unexpected credential type ${credential.type}")
     }
 
-    override suspend fun authorize(): AuthorizeOutcome {
+    override suspend fun authorize(account: String): AuthorizeOutcome {
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(GoogleAuthRepository.CALENDAR_READONLY_SCOPE)))
+            .setAccount(Account(account, ACCOUNT_TYPE))
             .build()
         val result = authorizationClient.authorize(request).await()
         val pendingIntent = result.pendingIntent
@@ -86,5 +88,9 @@ class PlayServicesGoogleAuthClient(
 
     override suspend fun signOut() {
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
+    }
+
+    private companion object {
+        const val ACCOUNT_TYPE = "com.google"
     }
 }

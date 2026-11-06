@@ -29,20 +29,20 @@ interface GoogleAuthClient {
     /** Lets the user pick a Google account; returns its email. @throws SignInCancelledException */
     suspend fun signIn(host: UiHost): String
 
-    /** Requests the Calendar read-only scope; silent when already granted. */
-    suspend fun authorize(): AuthorizeOutcome
+    /** Requests the Calendar read-only scope for [account]; silent when already granted. */
+    suspend fun authorize(account: String): AuthorizeOutcome
 
     /** Returns the access token from a finished consent screen. */
     suspend fun completeConsent(result: ConsentResult): String
 
+    /** Clears the sign-in state (used when the last account is removed). */
     suspend fun signOut()
 }
 
-/** Persists the connected account's email. */
+/** Persists the connected accounts' emails, in the order they were added. */
 interface AccountStore {
-    fun load(): String?
-    fun save(email: String)
-    fun clear()
+    fun load(): List<String>
+    fun save(accounts: List<String>)
 }
 
 sealed interface ConnectResult {
@@ -53,19 +53,20 @@ sealed interface ConnectResult {
     data class Failed(val error: Throwable) : ConnectResult
 }
 
+/** Any number of Google accounts; [connect] adds one (or re-authorizes one already connected). */
 class GoogleAuthRepository(
     private val client: GoogleAuthClient,
     private val store: AccountStore,
 ) : AuthRepository {
-    private val _account = MutableStateFlow(store.load())
-    override val account: StateFlow<String?> = _account.asStateFlow()
+    private val _accounts = MutableStateFlow(store.load().distinct())
+    override val accounts: StateFlow<List<String>> = _accounts.asStateFlow()
 
     /** Email chosen in [connect] while waiting for the consent screen. */
     private var pendingEmail: String? = null
 
     suspend fun connect(host: UiHost): ConnectResult = attempt {
         val email = client.signIn(host)
-        when (val outcome = client.authorize()) {
+        when (val outcome = client.authorize(email)) {
             is AuthorizeOutcome.Authorized -> finishConnect(email)
             is AuthorizeOutcome.NeedsConsent -> {
                 pendingEmail = email
@@ -80,32 +81,38 @@ class GoogleAuthRepository(
         finishConnect(email)
     }
 
-    override suspend fun accessToken(): String {
-        if (_account.value == null) throw NotAuthorizedException()
-        return when (val outcome = client.authorize()) {
+    override suspend fun accessToken(account: String): String {
+        if (account !in _accounts.value) throw NotAuthorizedException("$account is not connected")
+        return when (val outcome = client.authorize(account)) {
             is AuthorizeOutcome.Authorized -> outcome.accessToken
             // Access was revoked from the Google account settings; the user has to reconnect.
-            is AuthorizeOutcome.NeedsConsent -> throw NotAuthorizedException("Calendar access needs to be granted again")
+            is AuthorizeOutcome.NeedsConsent -> throw NotAuthorizedException("Calendar access for $account needs to be granted again")
         }
     }
 
-    override suspend fun disconnect() {
-        try {
-            client.signOut()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // Clearing local state is what matters; the token simply expires.
+    override suspend fun disconnect(account: String) {
+        val remaining = _accounts.value - account
+        if (remaining.isEmpty()) {
+            try {
+                client.signOut()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Clearing local state is what matters; the token simply expires.
+            }
         }
-        pendingEmail = null
-        store.clear()
-        _account.value = null
+        if (pendingEmail == account) pendingEmail = null
+        store.save(remaining)
+        _accounts.value = remaining
     }
 
     private fun finishConnect(email: String): ConnectResult {
         pendingEmail = null
-        store.save(email)
-        _account.value = email
+        if (email !in _accounts.value) {
+            val updated = _accounts.value + email
+            store.save(updated)
+            _accounts.value = updated
+        }
         return ConnectResult.Connected(email)
     }
 

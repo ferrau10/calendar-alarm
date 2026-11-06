@@ -47,7 +47,7 @@ class SelectionMigrationTest {
         createV1()
 
         val db = Room.databaseBuilder(app, SelectionDatabase::class.java, name)
-            .addMigrations(SelectionDatabase.MIGRATION_1_2)
+            .addMigrations(SelectionDatabase.MIGRATION_1_2, SelectionDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         val all = RoomSelectionStore(db.selectedEventDao()).all()
@@ -61,4 +61,20 @@ class SelectionMigrationTest {
             all,
         )
     }
+
+    @Test
+    fun accountColumnIsAddedInVersion3() = runBlocking {
+        createV1()
+        val db = Room.databaseBuilder(app, SelectionDatabase::class.java, name)
+            .addMigrations(SelectionDatabase.MIGRATION_1_2, SelectionDatabase.MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomSelectionStore(db.selectedEventDao())
+        assertEquals(listOf(null, null), store.all().map { it.account })
+
+        store.upsert(SelectedEvent("c", "work@example.com", "Work", Instant.ofEpochMilli(3000), null, account = "work@example.com"))
+        assertEquals("work@example.com", store.all().first { it.eventId == "c" }.account)
+        db.close()
+    }
 }
+

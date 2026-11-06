@@ -44,7 +44,7 @@ class GoogleCalendarRepository(
     private val tokens: AccessTokenProvider,
     private val baseUrl: String = DEFAULT_BASE_URL,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
-) : CalendarRepository {
+) : AccountCalendarApi {
 
     override suspend fun calendars(): List<CalendarInfo> {
         val result = mutableListOf<CalendarInfo>()

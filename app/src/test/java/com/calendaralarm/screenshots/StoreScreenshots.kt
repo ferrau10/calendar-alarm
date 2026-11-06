@@ -104,11 +104,11 @@ class StoreScreenshots {
                     CalendarChoice("primary", "Work", "#4285F4", true),
                     CalendarChoice("family", "Family", "#33B679", false),
                 ),
-                account = "you@example.com",
+                accounts = listOf("you@example.com"),
                 permissions = PermissionState.ALL_GRANTED,
                 autoSelectVideoCalls = true,
             ),
-            onBack = {}, onLeadChange = {}, onToggleCalendar = {}, onRetryCalendars = {}, onDisconnect = {},
+            onBack = {}, onLeadChange = {}, onToggleCalendar = {}, onRetryCalendars = {}, onRemoveAccount = {}, onAddAccount = {},
             onTestAlarm = {}, onOpenSystemSettings = {}, permissionIntents = PermissionIntents(null, null, null, null),
         )
     }
