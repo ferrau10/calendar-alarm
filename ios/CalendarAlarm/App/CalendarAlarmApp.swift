@@ -18,7 +18,7 @@ struct CalendarAlarmApp: App {
                 .environmentObject(auth)
                 .environmentObject(model)
                 .task {
-                    await auth.restore()
+                    auth.restore()
                     await model.refresh()
                 }
                 .onOpenURL { _ = auth.handle(url: $0) }

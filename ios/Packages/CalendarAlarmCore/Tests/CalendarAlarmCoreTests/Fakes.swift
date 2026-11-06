@@ -20,8 +20,11 @@ final class FakeCalendar: CalendarRepository, @unchecked Sendable {
             .sorted { $0.start < $1.start }
     }
 
-    func event(calendarId: String, eventId: String) async throws -> CalendarEvent? {
+    var lastEventAccount: String?
+
+    func event(account: String?, calendarId: String, eventId: String) async throws -> CalendarEvent? {
         fetches += 1
+        lastEventAccount = account
         if offline { throw Offline() }
         return events[eventId]
     }

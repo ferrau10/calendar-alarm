@@ -12,12 +12,15 @@ public struct CalendarInfo: Equatable, Hashable, Sendable, Identifiable {
     public let name: String
     public let colorHex: String?
     public let primary: Bool
+    /// Email of the Google account this calendar belongs to.
+    public var account: String
 
-    public init(id: String, name: String, colorHex: String?, primary: Bool) {
+    public init(id: String, name: String, colorHex: String?, primary: Bool, account: String = "") {
         self.id = id
         self.name = name
         self.colorHex = colorHex
         self.primary = primary
+        self.account = account
     }
 }
 
@@ -35,10 +38,13 @@ public struct CalendarEvent: Equatable, Hashable, Sendable, Identifiable {
     public let hasOtherAttendees: Bool
     /// I accepted, or it's my own event.
     public let acceptedByMe: Bool
+    /// Email of the Google account the event was read from.
+    public var account: String
 
     public init(
         id: String, calendarId: String, title: String, start: Date, end: Date, allDay: Bool,
-        location: String? = nil, meetLink: String? = nil, hasOtherAttendees: Bool = false, acceptedByMe: Bool = false
+        location: String? = nil, meetLink: String? = nil, hasOtherAttendees: Bool = false, acceptedByMe: Bool = false,
+        account: String = ""
     ) {
         self.id = id
         self.calendarId = calendarId
@@ -50,6 +56,7 @@ public struct CalendarEvent: Equatable, Hashable, Sendable, Identifiable {
         self.meetLink = meetLink
         self.hasOtherAttendees = hasOtherAttendees
         self.acceptedByMe = acceptedByMe
+        self.account = account
     }
 }
 
@@ -68,13 +75,16 @@ public struct SelectedEvent: Equatable, Hashable, Codable, Sendable {
     public var start: Date
     /// Minutes before `start` to ring, one alarm each (e.g. `[45, 5]`); `nil` = one alarm at the default.
     public var leadMinutes: [Int]?
+    /// Google account to refresh this event with (nil: whichever account owns the calendar).
+    public var account: String?
 
-    public init(eventId: String, calendarId: String, title: String, start: Date, leadMinutes: [Int]?) {
+    public init(eventId: String, calendarId: String, title: String, start: Date, leadMinutes: [Int]?, account: String? = nil) {
         self.eventId = eventId
         self.calendarId = calendarId
         self.title = title
         self.start = start
         self.leadMinutes = leadMinutes
+        self.account = account
     }
 
     /// Lead times in effect, largest first (= earliest alarm first), without duplicates.

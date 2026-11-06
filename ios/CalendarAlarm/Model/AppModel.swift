@@ -16,7 +16,7 @@ final class AppModel: ObservableObject {
     let alarms: AlarmKitScheduler
     private let selections: SelectionStore
     let settings: SettingsStore
-    private let calendar: GoogleCalendarClient
+    private let calendar: MultiAccountCalendarRepository
     private let syncer: AlarmSyncer
     private let mapper = EventsMapper()
 
@@ -34,7 +34,11 @@ final class AppModel: ObservableObject {
         let alarms = AlarmKitScheduler()
         let selections = SelectionStore(store: store)
         let settings = SettingsStore(store: store)
-        let calendar = GoogleCalendarClient(tokens: { _ in try await auth.accessToken() })
+        let clients = ClientCache(auth: auth)
+        let calendar = MultiAccountCalendarRepository(
+            accounts: { await auth.accounts },
+            apiFor: { clients.client(for: $0) }
+        )
         self.auth = auth
         self.alarms = alarms
         self.selections = selections
@@ -56,7 +60,7 @@ final class AppModel: ObservableObject {
 
     /// Loads calendars and the next 7 days of events, then refreshes alarms from the calendar.
     func refresh() async {
-        guard auth.account != nil else { list = .notConnected; return }
+        guard !auth.accounts.isEmpty else { list = .notConnected; return }
         if case .content = list {} else { list = .loading }
         do {
             calendars = try await calendar.calendars()
@@ -75,7 +79,7 @@ final class AppModel: ObservableObject {
     }
 
     private func rebuild() {
-        guard auth.account != nil else { list = .notConnected; return }
+        guard !auth.accounts.isEmpty else { list = .notConnected; return }
         if case .error = list, events.isEmpty { return }
         let colors = Dictionary(uniqueKeysWithValues: calendars.map { ($0.id, $0.colorHex) })
         list = .content(mapper.sections(events: events, selections: selections.all(), calendarColors: colors,
@@ -90,7 +94,8 @@ final class AppModel: ObservableObject {
             settings.addDismissed(row.id) // auto-select rules won't add it back
         } else if !row.allDay {
             selections.upsert(SelectedEvent(eventId: row.id, calendarId: row.calendarId, title: row.title,
-                                            start: row.start, leadMinutes: nil))
+                                            start: row.start, leadMinutes: nil,
+                                            account: row.account.isEmpty ? nil : row.account))
         }
         rebuild()
         resyncLocal()
@@ -100,7 +105,8 @@ final class AppModel: ObservableObject {
     func setLeadMinutes(_ row: EventRow, _ minutes: [Int]?) {
         guard !row.allDay else { return }
         selections.upsert(SelectedEvent(eventId: row.id, calendarId: row.calendarId, title: row.title,
-                                        start: row.start, leadMinutes: normalizeLeadTimes(minutes)))
+                                        start: row.start, leadMinutes: normalizeLeadTimes(minutes),
+                                        account: row.account.isEmpty ? nil : row.account))
         rebuild()
         resyncLocal()
     }
@@ -112,11 +118,20 @@ final class AppModel: ObservableObject {
         Task { await refresh() }
     }
 
-    func disconnect() async {
-        await auth.disconnect()
-        calendars = []
-        events = []
-        list = .notConnected
+    /// Removes one account with its meetings (alarms are cancelled by the sync) and calendar choices.
+    func removeAccount(_ email: String) async {
+        let wasFirst = auth.accounts.first == email
+        for selection in selections.all() where selection.account == email || (selection.account == nil && wasFirst) {
+            selections.remove(selection.eventId)
+        }
+        let own = Set(calendars.filter { $0.account == email }.map(\.id))
+        if !settings.enabledCalendarIds.isDisjoint(with: own) {
+            settings.enabledCalendarIds = settings.enabledCalendarIds.subtracting(own)
+        }
+        await auth.remove(email)
+        events.removeAll { $0.account == email }
+        await syncer.sync(refreshFromCalendar: false)
+        await refresh()
     }
 
     func connect() async {
@@ -152,3 +167,23 @@ final class AppModel: ObservableObject {
         try? BGTaskScheduler.shared.submit(request)
     }
 }
+
+/// One calendar client per account, each with that account's tokens.
+private final class ClientCache: @unchecked Sendable {
+    private let auth: AuthService
+    private var clients: [String: GoogleCalendarClient] = [:]
+    private let lock = NSLock()
+
+    init(auth: AuthService) { self.auth = auth }
+
+    func client(for account: String) -> GoogleCalendarClient {
+        lock.withLock {
+            if let existing = clients[account] { return existing }
+            let auth = self.auth
+            let client = GoogleCalendarClient(tokens: { _ in try await auth.accessToken(for: account) })
+            clients[account] = client
+            return client
+        }
+    }
+}
+

@@ -3,12 +3,22 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Read access to Google Calendar (mirrors the Android `CalendarRepository`).
+/// Read access to Google Calendar across all connected accounts (mirrors the Android `CalendarRepository`).
 public protocol CalendarRepository: Sendable {
+    /// Calendars of every connected account, each tagged with its account.
     func calendars() async throws -> [CalendarInfo]
-    /// Events overlapping [from, to) across the calendars, sorted by start time.
+    /// Events overlapping [from, to) across the calendars, sorted by start time; a meeting seen through two
+    /// accounts appears once.
     func upcomingEvents(calendarIds: Set<String>, from: Date, to: Date) async throws -> [CalendarEvent]
-    /// The latest version of an event, or nil when it was deleted or cancelled.
+    /// The latest version of an event read through `account` (nil: the calendar's owner), or nil when it was
+    /// deleted or cancelled.
+    func event(account: String?, calendarId: String, eventId: String) async throws -> CalendarEvent?
+}
+
+/// The Calendar API as seen by one Google account.
+public protocol AccountCalendarAPI: Sendable {
+    func calendars() async throws -> [CalendarInfo]
+    func upcomingEvents(calendarIds: Set<String>, from: Date, to: Date) async throws -> [CalendarEvent]
     func event(calendarId: String, eventId: String) async throws -> CalendarEvent?
 }
 
@@ -24,7 +34,7 @@ public struct CalendarAPIError: Error, Equatable, CustomStringConvertible {
 }
 
 /// Google Calendar REST API v3 client.
-public final class GoogleCalendarClient: CalendarRepository, @unchecked Sendable {
+public final class GoogleCalendarClient: AccountCalendarAPI, @unchecked Sendable {
     /// Returns an access token; `forceRefresh` is true after the API rejected the previous one (HTTP 401).
     public typealias TokenProvider = @Sendable (_ forceRefresh: Bool) async throws -> String
 

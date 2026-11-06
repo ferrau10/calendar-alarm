@@ -46,7 +46,12 @@ struct SettingsView: View {
                             Button { model.toggleCalendar(cal.id) } label: {
                                 HStack {
                                     Circle().fill(Color(hex: cal.colorHex) ?? .gray).frame(width: 10, height: 10)
-                                    Text(cal.name).foregroundStyle(.primary)
+                                    VStack(alignment: .leading) {
+                                        Text(cal.name).foregroundStyle(.primary)
+                                        if model.auth.accounts.count > 1, cal.account != cal.name {
+                                            Text(cal.account).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
                                     Spacer()
                                     if model.enabledCalendarIds.contains(cal.id) { Image(systemName: "checkmark") }
                                 }
@@ -74,13 +79,23 @@ struct SettingsView: View {
                     if let testStatus { Text(testStatus).font(.footnote).foregroundStyle(.secondary) }
                 }
 
-                Section("Google account") {
-                    if let account = model.auth.account {
-                        Text("Connected as \(account)")
-                        Button("Disconnect", role: .destructive) { Task { await model.disconnect() } }
-                    } else {
-                        Text("Not connected")
+                Section {
+                    ForEach(model.auth.accounts, id: \.self) { email in
+                        HStack {
+                            Text(email)
+                            Spacer()
+                            Button("Remove", role: .destructive) { Task { await model.removeAccount(email) } }
+                                .buttonStyle(.borderless)
+                        }
                     }
+                    Button(model.auth.accounts.isEmpty ? "Connect Google account" : "Add another account") {
+                        Task { await model.connect() }
+                    }
+                    if let error = model.auth.lastError { Text(error).font(.footnote).foregroundStyle(.red) }
+                } header: {
+                    Text("Google accounts")
+                } footer: {
+                    if model.auth.accounts.count > 1 { Text("Removing an account also removes the alarms for its meetings.") }
                 }
 
                 Section {
