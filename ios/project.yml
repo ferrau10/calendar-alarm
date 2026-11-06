@@ -23,6 +23,7 @@ targets:
     platform: iOS
     sources:
       - path: CalendarAlarm
+      - path: Shared
     configFiles:
       Debug: Config/App.xcconfig
       Release: Config/App.xcconfig
@@ -30,6 +31,7 @@ targets:
       - package: CalendarAlarmCore
       - package: AppAuth
         product: AppAuth
+      - target: CalendarAlarmWidget
     info:
       path: CalendarAlarm/Info.plist
       properties:
@@ -39,6 +41,7 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
         NSAlarmKitUsageDescription: Calendar Alarm rings an alarm before the meetings you choose, so you never miss one.
         UIBackgroundModes: [fetch]
         BGTaskSchedulerPermittedIdentifiers: [io.github.ferrau10.calendaralarm.refresh]
@@ -50,6 +53,24 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.ferrau10.calendaralarm
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+  CalendarAlarmWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: CalendarAlarmWidget
+      - path: Shared
+    info:
+      path: CalendarAlarmWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Calendar Alarm
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.ferrau10.calendaralarm.widget
         TARGETED_DEVICE_FAMILY: "1"
 schemes:
   CalendarAlarm:
