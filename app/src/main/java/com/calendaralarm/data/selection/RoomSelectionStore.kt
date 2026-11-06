@@ -27,6 +27,7 @@ internal fun SelectedEventEntity.toDomain() = SelectedEvent(
     title = title,
     start = Instant.ofEpochMilli(startEpochMillis),
     leadMinutes = leadMinutesCsv?.split(',')?.mapNotNull { it.trim().toIntOrNull() }?.takeIf { it.isNotEmpty() },
+    account = account,
 )
 
 internal fun SelectedEvent.toEntity() = SelectedEventEntity(
@@ -35,4 +36,5 @@ internal fun SelectedEvent.toEntity() = SelectedEventEntity(
     title = title,
     startEpochMillis = start.toEpochMilli(),
     leadMinutesCsv = leadMinutes?.takeIf { it.isNotEmpty() }?.joinToString(","),
+    account = account,
 )

@@ -30,7 +30,10 @@ class FakeCalendar : CalendarRepository {
         return events.values.filter { it.calendarId in calendarIds && it.start < to && it.end > from }.sortedBy { it.start }
     }
 
-    override suspend fun event(calendarId: String, eventId: String): CalendarEvent? {
+    var lastEventAccount: String? = null
+
+    override suspend fun event(account: String?, calendarId: String, eventId: String): CalendarEvent? {
+        lastEventAccount = account
         fetches++
         if (offline) throw IOException("offline")
         return events[eventId]
@@ -78,3 +81,14 @@ class FakeRegistry : ScheduledAlarmRegistry {
     override suspend fun keys() = stored
     override suspend fun replace(keys: Set<String>) { stored = keys }
 }
+
+class FakeAuth(vararg emails: String) : com.calendaralarm.domain.AuthRepository {
+    override val accounts = MutableStateFlow(emails.toList())
+    val disconnected = mutableListOf<String>()
+    override suspend fun accessToken(account: String) = "token-$account"
+    override suspend fun disconnect(account: String) {
+        disconnected += account
+        accounts.value = accounts.value - account
+    }
+}
+

@@ -2,7 +2,9 @@ package com.calendaralarm.ui.settings
 
 import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.domain.CalendarInfo
+import com.calendaralarm.sync.FakeAuth
 import com.calendaralarm.sync.FakeCalendar
+import com.calendaralarm.sync.FakeSelectionStore
 import com.calendaralarm.sync.FakeScheduler
 import com.calendaralarm.sync.FakeSettings
 import com.calendaralarm.ui.permissions.PermissionState
@@ -30,14 +32,8 @@ import org.junit.Test
 class SettingsViewModelTest {
     private val now = Instant.parse("2026-11-02T08:00:00Z")
 
-    private class FakeAuth(email: String?) : AuthRepository {
-        override val account = MutableStateFlow(email)
-        var disconnected = false
-        override suspend fun accessToken() = "token"
-        override suspend fun disconnect() { disconnected = true; account.value = null }
-    }
-
     private val auth = FakeAuth("me@example.com")
+    private val selections = FakeSelectionStore()
     private val calendar = FakeCalendar().apply {
         calendarList = listOf(
             CalendarInfo("primary", "me@example.com", "#4285f4", primary = true),
@@ -55,7 +51,7 @@ class SettingsViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = SettingsViewModel(
-        auth, calendar, settings, scheduler, { permissions }, Clock.fixed(now, ZoneOffset.UTC),
+        auth, calendar, settings, selections, scheduler, { permissions }, Clock.fixed(now, ZoneOffset.UTC),
     )
 
     private fun TestScope.state(vm: SettingsViewModel): () -> SettingsUiState {
@@ -68,7 +64,7 @@ class SettingsViewModelTest {
         val current = state(viewModel())
 
         assertEquals(5, current().defaultLeadMinutes)
-        assertEquals("me@example.com", current().account)
+        assertEquals(listOf("me@example.com"), current().accounts)
         assertEquals(listOf("primary" to true, "team" to false), current().calendars.map { it.id to it.checked })
         assertEquals(permissions, current().permissions)
     }
@@ -116,10 +112,10 @@ class SettingsViewModelTest {
         val vm = viewModel()
         val current = state(vm)
 
-        vm.disconnect()
+        vm.removeAccount("me@example.com")
 
-        assertTrue(auth.disconnected)
-        assertNull(current().account)
+        assertEquals(listOf("me@example.com"), auth.disconnected)
+        assertTrue(current().accounts.isEmpty())
         assertTrue(current().calendars.isEmpty())
     }
 
@@ -156,4 +152,41 @@ class SettingsViewModelTest {
         assertEquals(FakeScheduler.Alarm(now.plusSeconds(10), "Test meeting"), scheduler.alarms["test-alarm"])
         assertTrue(current().testAlarmScheduled)
     }
+
+    @Test
+    fun removingOneAccountKeepsTheOtherAccountsMeetings() = runTest {
+        auth.accounts.value = listOf("me@example.com", "work@example.com")
+        calendar.calendarList = listOf(
+            CalendarInfo("me@example.com", "Me", null, primary = true, account = "me@example.com"),
+            CalendarInfo("team", "Team", null, primary = false, account = "work@example.com"),
+        )
+        val start = now.plusSeconds(3600)
+        selections.upsert(com.calendaralarm.domain.SelectedEvent("legacy", "me@example.com", "Old", start, null, account = null))
+        selections.upsert(com.calendaralarm.domain.SelectedEvent("mine", "me@example.com", "Mine", start, null, account = "me@example.com"))
+        selections.upsert(com.calendaralarm.domain.SelectedEvent("work", "team", "Work", start, null, account = "work@example.com"))
+        settings.calendars.value = setOf("me@example.com", "team")
+        val vm = viewModel()
+        val current = state(vm)
+
+        vm.removeAccount("work@example.com")
+
+        assertEquals(setOf("legacy", "mine"), selections.state.value.keys)
+        assertEquals(setOf("me@example.com"), settings.calendars.value)
+        assertEquals(listOf("me@example.com"), current().accounts)
+    }
+
+    @Test
+    fun removingTheFirstAccountAlsoRemovesSelectionsFromBeforeMultipleAccounts() = runTest {
+        auth.accounts.value = listOf("me@example.com", "work@example.com")
+        val start = now.plusSeconds(3600)
+        selections.upsert(com.calendaralarm.domain.SelectedEvent("legacy", "primary", "Old", start, null, account = null))
+        selections.upsert(com.calendaralarm.domain.SelectedEvent("work", "team", "Work", start, null, account = "work@example.com"))
+        val vm = viewModel()
+        state(vm)
+
+        vm.removeAccount("me@example.com")
+
+        assertEquals(setOf("work"), selections.state.value.keys)
+    }
 }
+

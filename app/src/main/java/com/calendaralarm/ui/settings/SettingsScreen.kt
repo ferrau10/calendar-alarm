@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,7 +65,13 @@ data class PermissionIntents(
 )
 
 @Composable
-fun SettingsRoute(viewModel: SettingsViewModel, permissions: AppPermissions, onBack: () -> Unit) {
+fun SettingsRoute(
+    viewModel: SettingsViewModel,
+    permissions: AppPermissions,
+    onBack: () -> Unit,
+    /** Runs the Google sign-in flow for one more account. */
+    onAddAccount: () -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
     val context = LocalContext.current
@@ -80,7 +87,8 @@ fun SettingsRoute(viewModel: SettingsViewModel, permissions: AppPermissions, onB
         onLeadChange = viewModel::setDefaultLeadMinutes,
         onToggleCalendar = viewModel::toggleCalendar,
         onRetryCalendars = viewModel::loadCalendars,
-        onDisconnect = viewModel::disconnect,
+        onRemoveAccount = viewModel::removeAccount,
+        onAddAccount = onAddAccount,
         onTestAlarm = viewModel::scheduleTestAlarm,
         onAutoVideoChange = viewModel::setAutoSelectVideoCalls,
         onAutoAcceptedChange = viewModel::setAutoSelectAcceptedMeetings,
@@ -97,7 +105,8 @@ fun SettingsScreen(
     onLeadChange: (Int) -> Unit,
     onToggleCalendar: (String) -> Unit,
     onRetryCalendars: () -> Unit,
-    onDisconnect: () -> Unit,
+    onRemoveAccount: (String) -> Unit,
+    onAddAccount: () -> Unit,
     onTestAlarm: () -> Unit,
     onOpenSystemSettings: (Intent) -> Unit,
     permissionIntents: PermissionIntents,
@@ -158,7 +167,7 @@ fun SettingsScreen(
 
             Section("Calendars to show")
             when {
-                state.account == null -> Hint("Connect your Google account to choose calendars.")
+                state.accounts.isEmpty() -> Hint("Connect a Google account to choose calendars.")
                 state.calendarsError != null -> {
                     Hint(state.calendarsError)
                     OutlinedButton(onClick = onRetryCalendars, modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -174,7 +183,13 @@ fun SettingsScreen(
                         Checkbox(checked = choice.checked, onCheckedChange = { onToggleCalendar(choice.id) })
                         Box(Modifier.size(10.dp).clip(CircleShape).background(choice.colorHex.toColor() ?: MaterialTheme.colorScheme.outline))
                         Spacer(Modifier.width(12.dp))
-                        Text(choice.name)
+                        Column {
+                            Text(choice.name)
+                            // With several accounts, show which one each calendar belongs to.
+                            if (state.accounts.size > 1 && choice.account.isNotEmpty() && choice.account != choice.name) {
+                                Text(choice.account, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
@@ -195,12 +210,22 @@ fun SettingsScreen(
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            Section("Google account")
-            if (state.account != null) {
-                Hint("Connected as ${state.account}")
-                OutlinedButton(onClick = onDisconnect, modifier = Modifier.padding(horizontal = 16.dp)) { Text("Disconnect") }
-            } else {
-                Hint("Not connected")
+            Section("Google accounts")
+            if (state.accounts.isEmpty()) Hint("Not connected")
+            state.accounts.forEach { account ->
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(account, Modifier.weight(1f))
+                    TextButton(onClick = { onRemoveAccount(account) }) { Text("Remove") }
+                }
+            }
+            OutlinedButton(onClick = onAddAccount, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(if (state.accounts.isEmpty()) "Connect Google account" else "Add another account")
+            }
+            if (state.accounts.size > 1) {
+                Hint("Removing an account also removes the alarms for its meetings.")
             }
         }
     }
@@ -263,13 +288,13 @@ private fun SettingsPreview() = CalendarAlarmTheme {
         state = SettingsUiState(
             defaultLeadMinutes = 5,
             calendars = listOf(
-                CalendarChoice("primary", "me@example.com", "#4285f4", true),
-                CalendarChoice("team", "Team", "#0b8043", false),
+                CalendarChoice("me@example.com", "me@example.com", "#4285f4", true, "me@example.com"),
+                CalendarChoice("work@example.com", "Work", "#0b8043", false, "work@example.com"),
             ),
-            account = "me@example.com",
+            accounts = listOf("me@example.com", "work@example.com"),
             permissions = PermissionState(true, true, false, false),
         ),
-        onBack = {}, onLeadChange = {}, onToggleCalendar = {}, onRetryCalendars = {}, onDisconnect = {},
+        onBack = {}, onLeadChange = {}, onToggleCalendar = {}, onRetryCalendars = {}, onRemoveAccount = {}, onAddAccount = {},
         onTestAlarm = {}, onOpenSystemSettings = {},
         permissionIntents = PermissionIntents(null, null, null, null),
     )

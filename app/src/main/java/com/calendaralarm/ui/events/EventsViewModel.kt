@@ -73,7 +73,7 @@ class EventsViewModel @Inject constructor(
     fun refresh() {
         lastRefresh = clock.instant()
         viewModelScope.launch {
-            if (auth.account.value == null) {
+            if (auth.accounts.value.isEmpty()) {
                 load.value = Load.NotConnected
                 return@launch
             }
@@ -105,7 +105,7 @@ class EventsViewModel @Inject constructor(
                 selections.remove(row.eventId)
                 settings.addDismissedEventId(row.eventId) // auto-select rules won't add it back
             } else if (!row.allDay) {
-                selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, leadMinutes = null))
+                selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, leadMinutes = null, account = row.account.ifEmpty { null }))
             }
         }
     }
@@ -114,7 +114,9 @@ class EventsViewModel @Inject constructor(
     fun setLeadMinutes(row: EventRow, minutes: List<Int>?) {
         if (row.allDay) return
         viewModelScope.launch {
-            selections.upsert(SelectedEvent(row.eventId, row.calendarId, row.title, row.start, normalizeLeadTimes(minutes)))
+            selections.upsert(
+                SelectedEvent(row.eventId, row.calendarId, row.title, row.start, normalizeLeadTimes(minutes), row.account.ifEmpty { null }),
+            )
         }
     }
 

@@ -1,5 +1,6 @@
 package com.calendaralarm.ui.onboarding
 
+import com.calendaralarm.sync.FakeAuth
 import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.ui.permissions.PermissionState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,12 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingViewModelTest {
-    private class FakeAuth : AuthRepository {
-        override val account = MutableStateFlow<String?>(null)
-        override suspend fun accessToken() = "token"
-        override suspend fun disconnect() { account.value = null }
-    }
-
     private class MemoryStore : OnboardingStore {
         override var welcomeSeen = false
         override var batteryAsked = false
@@ -33,7 +28,7 @@ class OnboardingViewModelTest {
         vm.welcomeSeen()
         assertEquals(OnboardingStep.Connect, vm.step.value)
 
-        auth.account.value = "me@example.com"
+        auth.accounts.value = listOf("me@example.com")
         vm.refresh()
         assertEquals(OnboardingStep.Notifications, vm.step.value)
 
@@ -58,7 +53,7 @@ class OnboardingViewModelTest {
     @Test
     fun reopeningWithEverythingGrantedGoesStraightToDone() {
         store.welcomeSeen = true
-        auth.account.value = "me@example.com"
+        auth.accounts.value = listOf("me@example.com")
         perms = PermissionState.ALL_GRANTED
 
         val reopened = OnboardingViewModel(auth, { perms }, store)

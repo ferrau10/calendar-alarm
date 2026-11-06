@@ -10,6 +10,7 @@ import com.calendaralarm.data.auth.android.PlayServicesGoogleAuthClient
 import com.calendaralarm.data.auth.android.PrefsAccountStore
 import com.calendaralarm.data.calendar.AccessTokenProvider
 import com.calendaralarm.data.calendar.GoogleCalendarRepository
+import com.calendaralarm.data.calendar.MultiAccountCalendarRepository
 import com.calendaralarm.data.selection.RoomSelectionStore
 import com.calendaralarm.data.selection.SelectionDatabase
 import com.calendaralarm.data.settings.DataStoreSettingsStore
@@ -63,8 +64,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun calendarRepository(client: HttpClient, auth: AuthRepository): CalendarRepository =
-        GoogleCalendarRepository(client, AccessTokenProvider { auth.accessToken() })
+    fun calendarRepository(client: HttpClient, auth: AuthRepository): CalendarRepository {
+        val perAccount = java.util.concurrent.ConcurrentHashMap<String, GoogleCalendarRepository>()
+        return MultiAccountCalendarRepository(auth) { account ->
+            perAccount.getOrPut(account) {
+                GoogleCalendarRepository(client, AccessTokenProvider { auth.accessToken(account) })
+            }
+        }
+    }
 
     // --- Local storage ---
 

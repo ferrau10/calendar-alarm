@@ -9,6 +9,8 @@ data class CalendarInfo(
     val name: String,
     val colorHex: String?,
     val primary: Boolean,
+    /** Email of the Google account this calendar belongs to. */
+    val account: String = "",
 )
 
 /**
@@ -27,6 +29,8 @@ data class CalendarEvent(
     val hasOtherAttendees: Boolean = false,
     /** My response: true if I accepted, or I'm the organizer of an event without a response. */
     val acceptedByMe: Boolean = false,
+    /** Email of the Google account the event was read from. */
+    val account: String = "",
 )
 
 /** An event the user wants an alarm for. */
@@ -40,6 +44,8 @@ data class SelectedEvent(
      * `null` (or empty) means "one alarm at the global default".
      */
     val leadMinutes: List<Int>?,
+    /** Google account to refresh this event with; null for selections made before multiple accounts. */
+    val account: String? = null,
 ) {
     /** Lead times in effect, largest first (= earliest alarm first), without duplicates. */
     fun leadTimes(defaultLeadMinutes: Int): List<Int> =

@@ -61,7 +61,7 @@ class AlarmSyncer(
             var current = selection
             if (refreshFromCalendar) {
                 val latest = try {
-                    Fetch.Found(calendar.event(selection.calendarId, selection.eventId))
+                    Fetch.Found(calendar.event(selection.account, selection.calendarId, selection.eventId))
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -76,8 +76,14 @@ class AlarmSyncer(
                             removed += selection.eventId
                             continue
                         }
-                        if (event.start != selection.start || event.title != selection.title) {
-                            current = selection.copy(start = event.start, title = event.title)
+                        if (event.start != selection.start || event.title != selection.title ||
+                            (selection.account == null && event.account.isNotEmpty())
+                        ) {
+                            // Also fills in the account for selections made before multiple accounts.
+                            current = selection.copy(
+                                start = event.start, title = event.title,
+                                account = selection.account ?: event.account.ifEmpty { null },
+                            )
                             selections.upsert(current)
                             updated += selection.eventId
                         }
@@ -136,7 +142,11 @@ class AlarmSyncer(
         events
             .filter { it.start.isAfter(now) && it.id !in existing && it.id !in dismissed }
             .filter { AutoSelectRules.matches(it, video, accepted) }
-            .forEach { selections.upsert(SelectedEvent(it.id, it.calendarId, it.title, it.start, leadMinutes = null)) }
+            .forEach {
+                selections.upsert(
+                    SelectedEvent(it.id, it.calendarId, it.title, it.start, leadMinutes = null, account = it.account.ifEmpty { null }),
+                )
+            }
         return AutoSelectOutcome.Done
     }
 

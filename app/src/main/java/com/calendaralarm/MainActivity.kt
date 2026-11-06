@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         // App opened: pick up calendar changes for the selected events.
-        if (auth.account.value != null) AlarmSyncWork.syncNow(this, refreshFromCalendar = true)
+        if (auth.accounts.value.isNotEmpty()) AlarmSyncWork.syncNow(this, refreshFromCalendar = true)
     }
 
     @Composable
@@ -93,7 +93,8 @@ class MainActivity : ComponentActivity() {
             }
             composable(Routes.SETTINGS) {
                 val viewModel: SettingsViewModel = hiltViewModel()
-                SettingsRoute(viewModel, permissions, onBack = { nav.popBackStack() })
+                val addAccount = rememberConnect { viewModel.accountAdded() }
+                SettingsRoute(viewModel, permissions, onBack = { nav.popBackStack() }, onAddAccount = addAccount)
             }
         }
     }

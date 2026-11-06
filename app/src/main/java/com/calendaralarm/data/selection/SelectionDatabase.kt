@@ -21,6 +21,8 @@ data class SelectedEventEntity(
     val startEpochMillis: Long,
     /** Comma-separated minutes before start, e.g. "45,5"; null = use the global default. */
     val leadMinutesCsv: String?,
+    /** Google account the event belongs to; null for selections from before multiple accounts. */
+    val account: String? = null,
 )
 
 @Dao
@@ -41,17 +43,24 @@ interface SelectedEventDao {
     suspend fun deleteStartedBefore(epochMillis: Long): Int
 }
 
-@Database(entities = [SelectedEventEntity::class], version = 2, exportSchema = false)
+@Database(entities = [SelectedEventEntity::class], version = 3, exportSchema = false)
 abstract class SelectionDatabase : RoomDatabase() {
     abstract fun selectedEventDao(): SelectedEventDao
 
     companion object {
         fun create(context: Context): SelectionDatabase =
             Room.databaseBuilder(context.applicationContext, SelectionDatabase::class.java, DB_NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         const val DB_NAME = "selections.db"
+
+        /** v3: remember which Google account each selection belongs to. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `selected_events` ADD COLUMN `account` TEXT")
+            }
+        }
 
         /** v2: one lead time (INTEGER) → several (comma-separated TEXT). Keeps existing selections. */
         val MIGRATION_1_2 = object : Migration(1, 2) {

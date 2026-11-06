@@ -8,6 +8,7 @@ import com.calendaralarm.domain.AlarmScheduler
 import com.calendaralarm.domain.AuthRepository
 import com.calendaralarm.domain.CalendarInfo
 import com.calendaralarm.domain.CalendarRepository
+import com.calendaralarm.domain.SelectionStore
 import com.calendaralarm.domain.SettingsStore
 import com.calendaralarm.ui.permissions.PermissionChecker
 import com.calendaralarm.ui.permissions.PermissionState
@@ -21,13 +22,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class CalendarChoice(val id: String, val name: String, val colorHex: String?, val checked: Boolean)
+data class CalendarChoice(
+    val id: String,
+    val name: String,
+    val colorHex: String?,
+    val checked: Boolean,
+    val account: String = "",
+)
 
 data class SettingsUiState(
     val defaultLeadMinutes: Int = 5,
     val calendars: List<CalendarChoice> = emptyList(),
     val calendarsError: String? = null,
-    val account: String? = null,
+    /** Connected Google accounts, in the order they were added. */
+    val accounts: List<String> = emptyList(),
     val permissions: PermissionState = PermissionState.ALL_GRANTED,
     val testAlarmScheduled: Boolean = false,
     val autoSelectVideoCalls: Boolean = false,
@@ -39,6 +47,7 @@ class SettingsViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val calendar: CalendarRepository,
     private val settings: SettingsStore,
+    private val selections: SelectionStore,
     private val scheduler: AlarmScheduler,
     private val permissionChecker: PermissionChecker,
     private val clock: Clock = Clock.systemUTC(),
@@ -49,14 +58,14 @@ class SettingsViewModel @Inject constructor(
     private val testAlarm = MutableStateFlow(false)
 
     private val base = combine(
-        settings.defaultLeadMinutes, settings.enabledCalendarIds, calendars, calendarsError, auth.account,
-    ) { lead, enabled, list, error, account ->
+        settings.defaultLeadMinutes, settings.enabledCalendarIds, calendars, calendarsError, auth.accounts,
+    ) { lead, enabled, list, error, accounts ->
         val effective = effectiveSelection(enabled, list)
         SettingsUiState(
             defaultLeadMinutes = lead,
-            calendars = list.map { CalendarChoice(it.id, it.name, it.colorHex, it.id in effective) },
+            calendars = list.map { CalendarChoice(it.id, it.name, it.colorHex, it.id in effective, it.account) },
             calendarsError = error,
-            account = account,
+            accounts = accounts,
         )
     }
 
@@ -76,7 +85,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun loadCalendars() {
-        if (auth.account.value == null) return
+        if (auth.accounts.value.isEmpty()) {
+            calendars.value = emptyList()
+            return
+        }
         viewModelScope.launch {
             try {
                 calendars.value = calendar.calendars()
@@ -109,12 +121,27 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settings.setAutoSelectAcceptedMeetings(enabled) }
     }
 
-    fun disconnect() {
+    /**
+     * Disconnects one account and removes its meetings (their alarms are cancelled by the next sync) and its
+     * calendar choices. The other accounts are untouched.
+     */
+    fun removeAccount(account: String) {
         viewModelScope.launch {
-            auth.disconnect()
-            calendars.value = emptyList()
+            val wasFirst = auth.accounts.value.firstOrNull() == account
+            selections.all()
+                // Selections from before multiple accounts belong to the first account.
+                .filter { it.account == account || (it.account == null && wasFirst) }
+                .forEach { selections.remove(it.eventId) }
+            val ownCalendars = calendars.value.filter { it.account == account }.map { it.id }.toSet()
+            val enabled = settings.enabledCalendarIds.first()
+            if (enabled.any { it in ownCalendars }) settings.setEnabledCalendarIds(enabled - ownCalendars)
+            auth.disconnect(account)
+            loadCalendars()
         }
     }
+
+    /** Call after a new account was connected. */
+    fun accountAdded() = loadCalendars()
 
     /** Call when the screen resumes, e.g. after returning from system settings. */
     fun refreshPermissions() {

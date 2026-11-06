@@ -60,7 +60,7 @@ class OnboardingViewModel @Inject constructor(
         val step = OnboardingFlow.step(
             OnboardingFacts(
                 welcomeSeen = store.welcomeSeen,
-                connected = auth.account.value != null,
+                connected = auth.accounts.value.isNotEmpty(),
                 notifications = perms.notifications,
                 exactAlarms = perms.exactAlarms,
                 fullScreenAlarms = perms.fullScreenAlarms,
