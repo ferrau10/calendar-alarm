@@ -25,6 +25,9 @@ CI (`.github/workflows/ios.yml`) runs both on GitHub's macOS runners for every P
    client ID and the *iOS URL scheme* (reversed client ID) shown for that client.
 3. The same consent screen and `calendar.readonly` scope as Android are used, so no other changes are needed.
 
+Sign-in uses [AppAuth](https://github.com/openid/AppAuth-iOS) (Google's recommended OAuth library for native apps),
+which keeps one login per Google account in the Keychain, so several accounts can be connected at once.
+
 Without `Secrets.xcconfig` the app builds with placeholders and sign-in fails.
 
 ## TestFlight and the App Store

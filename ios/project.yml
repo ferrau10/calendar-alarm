@@ -8,14 +8,14 @@ options:
 packages:
   CalendarAlarmCore:
     path: Packages/CalendarAlarmCore
-  GoogleSignIn:
-    url: https://github.com/google/GoogleSignIn-iOS
-    minVersion: 8.0.0
-    maxVersion: 99.0.0
+  AppAuth:
+    url: https://github.com/openid/AppAuth-iOS
+    minVersion: 2.0.0
+    maxVersion: 2.99.0
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.2.0"
+    MARKETING_VERSION: "0.3.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   CalendarAlarm:
@@ -28,8 +28,8 @@ targets:
       Release: Config/App.xcconfig
     dependencies:
       - package: CalendarAlarmCore
-      - package: GoogleSignIn
-        product: GoogleSignIn
+      - package: AppAuth
+        product: AppAuth
     info:
       path: CalendarAlarm/Info.plist
       properties:
@@ -42,7 +42,8 @@ targets:
         NSAlarmKitUsageDescription: Calendar Alarm rings an alarm before the meetings you choose, so you never miss one.
         UIBackgroundModes: [fetch]
         BGTaskSchedulerPermittedIdentifiers: [io.github.ferrau10.calendaralarm.refresh]
-        GIDClientID: $(GOOGLE_IOS_CLIENT_ID)
+        GoogleClientID: $(GOOGLE_IOS_CLIENT_ID)
+        GoogleReversedClientID: $(GOOGLE_IOS_REVERSED_CLIENT_ID)
         CFBundleURLTypes:
           - CFBundleURLSchemes: [$(GOOGLE_IOS_REVERSED_CLIENT_ID)]
     settings:

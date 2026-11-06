@@ -115,4 +115,17 @@ final class AlarmSyncerTests: XCTestCase {
         XCTAssertEqual(Set(selections.all().map(\.eventId)), ["call"])
         XCTAssertNotNil(scheduler.alarms["call@5"])
     }
+
+    func testRefreshUsesTheSelectionsAccountAndFillsInMissingOnes() async {
+        var e = event("a", startIn: 60)
+        e.account = "work@example.com"
+        calendar.events["a"] = e
+        select(e)
+
+        await syncer.sync()
+        XCTAssertEqual(selections.get("a")?.account, "work@example.com")
+        await syncer.sync()
+        XCTAssertEqual(calendar.lastEventAccount, "work@example.com")
+    }
 }
+

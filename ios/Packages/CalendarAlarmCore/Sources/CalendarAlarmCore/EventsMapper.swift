@@ -14,6 +14,8 @@ public struct EventRow: Equatable, Identifiable, Sendable {
     public let alarmText: String?
     /// Per-event lead times, or nil when using the default.
     public let customLeadMinutes: [Int]?
+    /// Google account the event comes from.
+    public let account: String
 }
 
 public struct DaySection: Equatable, Identifiable, Sendable {
@@ -82,7 +84,7 @@ public struct EventsMapper: Sendable {
             id: event.id, calendarId: event.calendarId, title: event.title, start: event.start,
             timeText: event.allDay ? "All day" : "\(time(event.start)) – \(time(event.end))",
             colorHex: colors[event.calendarId] ?? nil, allDay: event.allDay, selected: selection != nil,
-            alarmText: alarmText, customLeadMinutes: selection?.leadMinutes
+            alarmText: alarmText, customLeadMinutes: selection?.leadMinutes, account: event.account
         )
     }
 

@@ -59,14 +59,17 @@ public actor AlarmSyncer {
             var current = selection
             if refreshFromCalendar {
                 do {
-                    guard let event = try await calendar.event(calendarId: selection.calendarId, eventId: selection.eventId) else {
+                    guard let event = try await calendar.event(account: selection.account, calendarId: selection.calendarId,
+                                                               eventId: selection.eventId) else {
                         selections.remove(selection.eventId)
                         result.removedSelections.insert(selection.eventId)
                         continue
                     }
-                    if event.start != selection.start || event.title != selection.title {
+                    let missingAccount = selection.account == nil && !event.account.isEmpty
+                    if event.start != selection.start || event.title != selection.title || missingAccount {
                         current.start = event.start
                         current.title = event.title
+                        if missingAccount { current.account = event.account }
                         selections.upsert(current)
                         result.updatedSelections.insert(selection.eventId)
                     }
@@ -118,7 +121,8 @@ public actor AlarmSyncer {
             for event in events where event.start > now && !existing.contains(event.id) && !dismissed.contains(event.id)
                 && AutoSelectRules.matches(event, videoCalls: video, acceptedMeetings: accepted) {
                 selections.upsert(SelectedEvent(eventId: event.id, calendarId: event.calendarId, title: event.title,
-                                                start: event.start, leadMinutes: nil))
+                                                start: event.start, leadMinutes: nil,
+                                                account: event.account.isEmpty ? nil : event.account))
             }
             return true
         } catch {
