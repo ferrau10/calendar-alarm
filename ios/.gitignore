@@ -5,3 +5,4 @@ CalendarAlarm/Info.plist
 DerivedData/
 xcuserdata/
 Config/Secrets.xcconfig
+CalendarAlarmWidget/Info.plist
