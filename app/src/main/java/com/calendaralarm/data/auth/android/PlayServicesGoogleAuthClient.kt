@@ -23,6 +23,8 @@ import com.calendaralarm.data.auth.SignInCancelledException
 import com.calendaralarm.data.auth.UiHost
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
@@ -105,9 +107,16 @@ class PlayServicesGoogleAuthClient(
     }
 
     override suspend fun completeConsent(result: ConsentResult): String {
-        val data = (result as IntentConsentResult).data ?: throw SignInCancelledException()
-        return authorizationClient.getAuthorizationResultFromIntent(data).accessToken
-            ?: error("Consent returned no access token")
+        // A closed or refused permission screen used to look like a silent "cancel", which sent people back to
+        // the Connect screen in a loop. Always explain what happened instead.
+        val data = (result as IntentConsentResult).data ?: throw IllegalStateException(CONSENT_NOT_GRANTED)
+        val authorization = try {
+            authorizationClient.getAuthorizationResultFromIntent(data)
+        } catch (e: ApiException) {
+            if (e.statusCode == CommonStatusCodes.CANCELED) throw IllegalStateException(CONSENT_NOT_GRANTED, e)
+            throw IllegalStateException("Google refused calendar access (code ${e.statusCode}: ${e.message}).", e)
+        }
+        return authorization.accessToken ?: throw IllegalStateException(CONSENT_NOT_GRANTED)
     }
 
     override suspend fun signOut() {
@@ -115,6 +124,9 @@ class PlayServicesGoogleAuthClient(
     }
 
     private companion object {
+        const val CONSENT_NOT_GRANTED =
+            "Calendar access wasn't granted. If Google showed \"Google hasn't verified this app\", tap " +
+                "\"Advanced\" → \"Go to Calendar Alarm\", then allow access to your calendar."
         const val ACCOUNT_TYPE = "com.google"
     }
 }

@@ -1,6 +1,7 @@
 package com.calendaralarm
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -101,8 +102,14 @@ class MainActivity : ComponentActivity() {
 
     /** Returns a callback that runs the Google connection flow, including the consent screen if needed. */
     @Composable
-    private fun rememberConnect(onDone: (ConnectResult) -> Unit): () -> Unit {
+    private fun rememberConnect(onResult: (ConnectResult) -> Unit): () -> Unit {
         val scope = rememberCoroutineScope()
+        val onDone: (ConnectResult) -> Unit = { result ->
+            if (result is ConnectResult.Failed) {
+                Toast.makeText(this, result.error.message ?: "Couldn't connect Google Calendar", Toast.LENGTH_LONG).show()
+            }
+            onResult(result)
+        }
         val consentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
             scope.launch { onDone(auth.completeConsent(IntentConsentResult(it.data))) }
         }
